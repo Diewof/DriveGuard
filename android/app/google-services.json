@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1029048019296",
+    "project_id": "driveguard-prototipo",
+    "storage_bucket": "driveguard-prototipo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1029048019296:android:f22952a8382e9d38c0d605",
+        "android_client_info": {
+          "package_name": "com.driveguard.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBc2V0mo4jOuFC7t11SMooYAQcjmvywUpQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1029048019296:android:d9736696fe7886d7c0d605",
+        "android_client_info": {
+          "package_name": "com.example.driveguard_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBc2V0mo4jOuFC7t11SMooYAQcjmvywUpQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
