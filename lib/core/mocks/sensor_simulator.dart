@@ -19,7 +19,7 @@ class SensorSimulator {
 
     _isRunning = true;
     _timer = Timer.periodic(
-      Duration(milliseconds: AppConstants.sensorUpdateIntervalMs),
+      const Duration(milliseconds: AppConstants.sensorUpdateIntervalMs),
       (_) => _generateAndEmitData(mode),
     );
   }

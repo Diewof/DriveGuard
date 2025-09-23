@@ -7,24 +7,53 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:driveguard_app/main.dart';
+import 'package:driveguard_app/core/utils/validators.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const DriveGuardApp());
+  group('Validators Test', () {
+    test('Email validator should work correctly', () {
+      // Valid emails
+      expect(Validators.email('test@example.com'), isNull);
+      expect(Validators.email('user.name@domain.co'), isNull);
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+      // Invalid emails
+      expect(Validators.email(''), isNotNull);
+      expect(Validators.email('invalid-email'), isNotNull);
+      expect(Validators.email('test@'), isNotNull);
+    });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    test('Password validator should work correctly', () {
+      // Valid passwords
+      expect(Validators.password('123456'), isNull);
+      expect(Validators.password('password123'), isNull);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+      // Invalid passwords
+      expect(Validators.password(''), isNotNull);
+      expect(Validators.password('123'), isNotNull);
+      expect(Validators.password(null), isNotNull);
+    });
+
+    test('Name validator should work correctly', () {
+      // Valid names
+      expect(Validators.name('John Doe'), isNull);
+      expect(Validators.name('María García'), isNull);
+
+      // Invalid names
+      expect(Validators.name(''), isNotNull);
+      expect(Validators.name('A'), isNotNull);
+      expect(Validators.name(null), isNotNull);
+    });
+
+    test('Confirm password validator should work correctly', () {
+      const originalPassword = 'password123';
+
+      // Matching passwords
+      expect(Validators.confirmPassword('password123', originalPassword), isNull);
+
+      // Non-matching passwords
+      expect(Validators.confirmPassword('different', originalPassword), isNotNull);
+      expect(Validators.confirmPassword('', originalPassword), isNotNull);
+      expect(Validators.confirmPassword(null, originalPassword), isNotNull);
+    });
   });
 }
