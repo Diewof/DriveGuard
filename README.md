@@ -1,16 +1,1 @@
-# driveguard_app
-
-A new Flutter project.
-
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Proyecto DriveGuard – Dispositivo Inteligente de Prevención y Respuesta ante Crisis de Conducción Un sistema híbrido que integra sensores, inteligencia artificial y una aplicación móvil para monitorear en tiempo real el estado físico y de atención del conductor, con el fin de prevenir accidentes de tránsito ocasionados por distracción o alteraciones físicas. 📖 Tema El proyecto aborda la seguridad vial mediante tecnologías IoT e IA, enfocándose en reducir los riesgos derivados del uso del celular, la fatiga y la distracción al volante. Está enmarcado en la ingeniería de software y hardware embebido, con aplicaciones directas en movilidad inteligente y transporte seguro. 🎯 Objetivo General Desarrollar un dispositivo portátil y autónomo que detecte distracciones o condiciones físicas adversas del conductor, alertando y respondiendo automáticamente en situaciones de riesgo para proteger la vida de los ocupantes y terceros. ✅ Objetivos Específicos Diseñar e implementar el hardware con sensores de movimiento, acelerómetros y cámara para registrar datos fisiológicos y comportamentales. Desarrollar algoritmos de IA en la nube para analizar señales multimodales y detectar riesgos en tiempo real. Crear una aplicación móvil que permita monitoreo remoto, notificaciones y activación de protocolos de emergencia. Implementar un sistema de alertas inteligentes (sonido, vibración, notificaciones) para advertir al conductor. Incorporar un módulo de respuesta autónoma que conecte con servicios de emergencia en caso de choques o crisis. Validar el sistema mediante pruebas controladas, evaluando precisión, efectividad y confiabilidad. 📌 Alcance Prototipo funcional con ESP32-CAM + MPU-6050. Firmware en C++ para captura de datos y alertas locales. App móvil (Flutter) multiplataforma con sincronización en tiempo real. Procesamiento en la nube con IA (TensorFlow.js, MobileNet, YOLO). Sistema de alertas y respuesta autónoma conectado a servicios de emergencia. Pruebas en entornos simulados con usuarios piloto.
