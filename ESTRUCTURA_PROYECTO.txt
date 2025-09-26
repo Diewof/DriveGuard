@@ -1,0 +1,258 @@
+ESTRUCTURA DEL PROYECTO DRIVEGUARD
+=====================================
+
+DriveGuard/
+│
+├── .claude/                           # Configuraciones de Claude Code
+│   └── settings.local.json           # Configuración local de Claude
+│
+├── .dart_tool/                        # Herramientas Dart (generado automáticamente)
+│
+├── .gitignore                         # Archivos/carpetas ignorados por Git
+├── .metadata                          # Metadatos del proyecto Flutter
+├── README.md                          # Documentación principal del proyecto
+├── AUTHENTICATION_SETUP.md            # Guía de configuración de autenticación
+├── analysis_options.yaml             # Opciones de análisis de código Dart
+├── firebase.json                      # Configuración de Firebase
+├── pubspec.yaml                       # Dependencias y configuración del proyecto Flutter
+├── pubspec.lock                       # Versiones exactas de dependencias (generado)
+│
+├── android/                           # Plataforma Android
+│   ├── .gitignore                     # Ignorar archivos específicos de Android
+│   ├── build.gradle.kts               # Script de build principal de Android
+│   ├── gradle.properties              # Propiedades de Gradle
+│   ├── settings.gradle.kts            # Configuración de módulos Gradle
+│   │
+│   ├── gradle/wrapper/                # Wrapper de Gradle
+│   │   └── gradle-wrapper.properties  # Propiedades del wrapper
+│   │
+│   └── app/                           # Módulo principal de la app Android
+│       ├── build.gradle.kts           # Script de build del módulo app
+│       ├── google-services.json       # Configuración de Google Services/Firebase
+│       │
+│       └── src/
+│           ├── debug/                 # Configuración para builds de debug
+│           │   └── AndroidManifest.xml
+│           │
+│           ├── profile/               # Configuración para builds de profile
+│           │   └── AndroidManifest.xml
+│           │
+│           └── main/                  # Código principal Android
+│               ├── AndroidManifest.xml        # Manifesto principal de la app
+│               │
+│               ├── kotlin/com/driveguard/     # Código nativo Kotlin (NUEVO)
+│               │   └── MainActivity.kt        # Actividad principal
+│               │
+│               ├── kotlin/com/example/driveguard_app/  # Código anterior (ELIMINADO)
+│               │   └── MainActivity.kt        # Actividad anterior
+│               │
+│               └── res/               # Recursos Android
+│                   ├── drawable/      # Drawables normales
+│                   ├── drawable-v21/  # Drawables para API 21+
+│                   ├── mipmap-*/      # Iconos de diferentes densidades
+│                   └── values/        # Valores (strings, colors, styles)
+│
+├── assets/                            # Recursos del proyecto
+│   ├── README.md                      # Documentación de assets
+│   ├── images/                        # Imágenes de la aplicación
+│   │   ├── README.md                  # Documentación de imágenes (ELIMINADO)
+│   │   └── logo.svg                   # Logo de la app (ELIMINADO)
+│   └── test/                          # Assets para testing
+│       └── README.md                  # Documentación de assets de test
+│
+├── ios/                               # Plataforma iOS
+│   ├── .gitignore                     # Ignorar archivos específicos de iOS
+│   ├── Flutter/                       # Configuraciones Flutter para iOS
+│   ├── Runner.xcodeproj/              # Proyecto Xcode
+│   ├── Runner.xcworkspace/            # Workspace Xcode
+│   ├── Runner/                        # Código fuente iOS
+│   │   ├── AppDelegate.swift          # Delegado principal de la app
+│   │   ├── Assets.xcassets/           # Assets (iconos, imágenes)
+│   │   ├── Base.lproj/                # Storyboards base
+│   │   ├── Info.plist                 # Configuración de la app iOS
+│   │   └── Runner-Bridging-Header.h   # Header para bridging Swift-ObjC
+│   └── RunnerTests/                   # Tests para iOS
+│
+├── lib/                               # CÓDIGO PRINCIPAL FLUTTER/DART
+│   ├── main.dart                      # Punto de entrada de la aplicación
+│   ├── firebase_options.dart          # Opciones de Firebase generadas
+│   │
+│   ├── core/                          # Núcleo de la aplicación
+│   │   ├── README.md                  # Documentación del core
+│   │   │
+│   │   ├── constants/                 # Constantes de la app
+│   │   │   ├── README.md              # Documentación de constantes
+│   │   │   └── app_constants.dart     # Constantes principales
+│   │   │
+│   │   ├── errors/                    # Manejo de errores
+│   │   │   ├── README.md              # Documentación de errores
+│   │   │   └── auth_failures.dart     # Errores de autenticación
+│   │   │
+│   │   ├── mocks/                     # Datos simulados para desarrollo
+│   │   │   ├── README.md              # Documentación de mocks
+│   │   │   └── sensor_simulator.dart  # Simulador de sensores
+│   │   │
+│   │   ├── network/                   # Configuración de red
+│   │   │   └── README.md              # Documentación de network
+│   │   │
+│   │   ├── routing/                   # Navegación y routing
+│   │   │   └── app_router.dart        # Router principal de la app
+│   │   │
+│   │   └── utils/                     # Utilidades generales
+│   │       ├── README.md              # Documentación de utils
+│   │       └── validators.dart        # Validadores de formularios
+│   │
+│   ├── data/                          # CAPA DE DATOS (Clean Architecture)
+│   │   ├── README.md                  # Documentación de la capa de datos
+│   │   │
+│   │   ├── datasources/               # Fuentes de datos
+│   │   │   ├── README.md              # Documentación de datasources
+│   │   │   │
+│   │   │   ├── local/                 # Datos locales (cache, storage)
+│   │   │   │   ├── README.md          # Documentación local datasource
+│   │   │   │   └── auth_local_datasource.dart  # Autenticación local
+│   │   │   │
+│   │   │   └── remote/                # Datos remotos (APIs, Firebase)
+│   │   │       ├── README.md          # Documentación remote datasource
+│   │   │       └── firebase_auth_datasource.dart  # Autenticación Firebase
+│   │   │
+│   │   ├── models/                    # Modelos de datos (DTOs)
+│   │   │   ├── README.md              # Documentación de modelos
+│   │   │   ├── auth_result_model.dart # Modelo resultado autenticación
+│   │   │   └── user_model.dart        # Modelo de usuario
+│   │   │
+│   │   └── repositories/              # Implementaciones de repositorios
+│   │       ├── README.md              # Documentación de repositorios
+│   │       └── auth_repository_impl.dart  # Implementación repo autenticación
+│   │
+│   ├── domain/                        # CAPA DE DOMINIO (Clean Architecture)
+│   │   ├── README.md                  # Documentación de la capa de dominio
+│   │   │
+│   │   ├── entities/                  # Entidades de negocio
+│   │   │   ├── README.md              # Documentación de entidades
+│   │   │   ├── auth_result.dart       # Entidad resultado autenticación
+│   │   │   ├── sensor_data.dart       # Entidad datos de sensores
+│   │   │   └── user.dart              # Entidad usuario
+│   │   │
+│   │   ├── repositories/              # Contratos de repositorios
+│   │   │   ├── README.md              # Documentación de repositorios
+│   │   │   └── auth_repository.dart   # Contrato repositorio autenticación
+│   │   │
+│   │   └── usecases/                  # Casos de uso de negocio
+│   │       ├── README.md              # Documentación de casos de uso
+│   │       ├── forgot_password_usecase.dart   # Caso uso olvidar contraseña
+│   │       ├── get_current_user_usecase.dart  # Caso uso obtener usuario actual
+│   │       ├── login_usecase.dart     # Caso uso login
+│   │       ├── logout_usecase.dart    # Caso uso logout
+│   │       └── register_usecase.dart  # Caso uso registro
+│   │
+│   └── presentation/                  # CAPA DE PRESENTACIÓN (Clean Architecture)
+│       ├── README.md                  # Documentación de la capa presentación
+│       │
+│       ├── blocs/                     # Gestión de estado con BLoC
+│       │   ├── README.md              # Documentación de BLoCs
+│       │   │
+│       │   └── auth/                  # BLoC de autenticación
+│       │       ├── auth_bloc.dart     # BLoC principal de auth
+│       │       ├── auth_event.dart    # Eventos de autenticación
+│       │       └── auth_state.dart    # Estados de autenticación
+│       │
+│       ├── pages/                     # Páginas/Pantallas de la app
+│       │   ├── README.md              # Documentación de páginas
+│       │   ├── dashboard_page.dart    # Página principal/dashboard
+│       │   ├── splash_page.dart       # Página de splash/carga
+│       │   │
+│       │   └── auth/                  # Páginas de autenticación
+│       │       ├── forgot_password_page.dart  # Página olvidar contraseña
+│       │       ├── login_page.dart    # Página de login
+│       │       └── register_page.dart # Página de registro
+│       │
+│       └── widgets/                   # Widgets reutilizables
+│           ├── README.md              # Documentación de widgets
+│           │
+│           └── auth/                  # Widgets específicos de auth
+│               ├── auth_button.dart   # Botón personalizado para auth
+│               └── auth_text_field.dart  # Campo de texto para auth
+│
+├── linux/                             # Plataforma Linux
+│   ├── .gitignore                     # Ignorar archivos Linux
+│   ├── CMakeLists.txt                 # Configuración CMake principal
+│   ├── flutter/                       # Configuración Flutter Linux
+│   └── runner/                        # Ejecutable Linux
+│
+├── macos/                             # Plataforma macOS
+│   ├── .gitignore                     # Ignorar archivos macOS
+│   ├── Flutter/                       # Configuración Flutter macOS
+│   ├── Runner.xcodeproj/              # Proyecto Xcode para macOS
+│   ├── Runner.xcworkspace/            # Workspace Xcode
+│   ├── Runner/                        # Código fuente macOS
+│   └── RunnerTests/                   # Tests para macOS
+│
+├── test/                              # PRUEBAS
+│   ├── README.md                      # Documentación de tests
+│   ├── widget_test.dart               # Test de widgets básico
+│   │
+│   ├── integration/                   # Tests de integración
+│   │   └── README.md                  # Documentación tests integración
+│   │
+│   ├── unit/                          # Tests unitarios
+│   │   └── README.md                  # Documentación tests unitarios
+│   │
+│   └── widget/                        # Tests de widgets
+│       └── README.md                  # Documentación tests widgets
+│
+├── web/                               # Plataforma Web
+│   ├── favicon.png                    # Favicon de la web
+│   ├── index.html                     # HTML principal
+│   ├── manifest.json                  # Manifiesto PWA
+│   │
+│   └── icons/                         # Iconos para PWA
+│       ├── Icon-192.png               # Icono 192x192
+│       ├── Icon-512.png               # Icono 512x512
+│       ├── Icon-maskable-192.png      # Icono maskable 192x192
+│       └── Icon-maskable-512.png      # Icono maskable 512x512
+│
+└── windows/                           # Plataforma Windows
+    ├── .gitignore                     # Ignorar archivos Windows
+    ├── CMakeLists.txt                 # Configuración CMake principal
+    ├── flutter/                       # Configuración Flutter Windows
+    └── runner/                        # Ejecutable Windows
+
+
+ARQUITECTURA DEL PROYECTO:
+=========================
+
+El proyecto sigue Clean Architecture con 3 capas principales:
+
+1. PRESENTATION (lib/presentation/):
+   - Páginas, widgets y gestión de estado (BLoC)
+   - Se comunica solo con la capa Domain
+
+2. DOMAIN (lib/domain/):
+   - Entidades de negocio y casos de uso
+   - Núcleo de la lógica de negocio
+   - Independiente de frameworks externos
+
+3. DATA (lib/data/):
+   - Implementación de repositorios
+   - Fuentes de datos (local/remote)
+   - Modelos de datos
+
+4. CORE (lib/core/):
+   - Utilidades, constantes y configuración compartida
+   - Servicios transversales
+
+ARCHIVOS CLAVE:
+==============
+- main.dart: Punto de entrada
+- pubspec.yaml: Dependencias y configuración
+- firebase_options.dart: Configuración Firebase
+- app_router.dart: Navegación de la app
+- auth_bloc.dart: Gestión estado autenticación
+
+CAMBIOS RECIENTES:
+==================
+- Se eliminó MainActivity.kt de com.example.driveguard_app
+- Se creó nueva estructura en com.driveguard
+- Se eliminaron assets/images/README.md y logo.svg
+- Se modificaron archivos de configuración Android

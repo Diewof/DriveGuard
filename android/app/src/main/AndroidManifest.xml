@@ -1,5 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.driveguard.app">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- Permisos necesarios para DriveGuard -->
     <uses-permission android:name="android.permission.INTERNET" />

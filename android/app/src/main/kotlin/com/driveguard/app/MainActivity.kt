@@ -1,4 +1,4 @@
-package com.example.driveguard_app
+package com.driveguard.app
 
 import io.flutter.embedding.android.FlutterActivity
 

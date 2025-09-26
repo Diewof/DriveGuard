@@ -1,13 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(flutter pub:*)",
-      "Bash(tree:*)",
-      "Bash(findstr:*)",
-      "Bash(dir /s)",
-      "Bash(flutter analyze:*)",
-      "Bash(flutter test:*)",
-      "Bash(flutter run:*)"
+      "Bash(dir C:UsersjdgutDesktopDriveGuardandroidapp)",
+      "Bash(flutter clean:*)",
+      "Bash(flutter build:*)",
+      "Bash(flutter analyze:*)"
     ],
     "deny": [],
     "ask": []
