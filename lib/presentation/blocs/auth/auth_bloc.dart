@@ -5,6 +5,7 @@ import '../../../domain/usecases/login_usecase.dart';
 import '../../../domain/usecases/logout_usecase.dart';
 import '../../../domain/usecases/register_usecase.dart';
 import '../../../domain/usecases/forgot_password_usecase.dart';
+import '../../../core/errors/auth_failures.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
@@ -48,18 +49,25 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(state.copyWith(status: AuthStatus.loading));
 
-    final result = await _getCurrentUserUseCase();
-    result.fold(
-      (failure) => emit(state.copyWith(
+    try {
+      final user = await _getCurrentUserUseCase();
+      emit(state.copyWith(
+        status: user != null ? AuthStatus.authenticated : AuthStatus.unauthenticated,
+        user: user,
+      ));
+    } on AuthFailure catch (failure) {
+      emit(state.copyWith(
         status: AuthStatus.unauthenticated,
         user: null,
         errorMessage: failure.message,
-      )),
-      (user) => emit(state.copyWith(
-        status: user != null ? AuthStatus.authenticated : AuthStatus.unauthenticated,
-        user: user,
-      )),
-    );
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        status: AuthStatus.unauthenticated,
+        user: null,
+        errorMessage: 'Error desconocido',
+      ));
+    }
   }
 
   Future<void> _onAuthLoginRequested(
@@ -68,22 +76,35 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(state.copyWith(status: AuthStatus.loading));
 
-    final result = await _loginUseCase(
-      email: event.email,
-      password: event.password,
-    );
+    try {
+      final authResult = await _loginUseCase(
+        email: event.email,
+        password: event.password,
+      );
 
-    result.fold(
-      (failure) => emit(state.copyWith(
+      if (authResult.isSuccess && authResult.user != null) {
+        emit(state.copyWith(
+          status: AuthStatus.authenticated,
+          user: authResult.user,
+          successMessage: authResult.message,
+        ));
+      } else {
+        emit(state.copyWith(
+          status: AuthStatus.unauthenticated,
+          errorMessage: authResult.errorMessage ?? 'Error de autenticación',
+        ));
+      }
+    } on AuthFailure catch (failure) {
+      emit(state.copyWith(
         status: AuthStatus.unauthenticated,
         errorMessage: failure.message,
-      )),
-      (authResult) => emit(state.copyWith(
-        status: AuthStatus.authenticated,
-        user: authResult.user,
-        successMessage: authResult.message,
-      )),
-    );
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        status: AuthStatus.unauthenticated,
+        errorMessage: 'Error desconocido',
+      ));
+    }
   }
 
   Future<void> _onAuthRegisterRequested(
@@ -92,23 +113,36 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(state.copyWith(status: AuthStatus.loading));
 
-    final result = await _registerUseCase(
-      email: event.email,
-      password: event.password,
-      name: event.name,
-    );
+    try {
+      final authResult = await _registerUseCase(
+        email: event.email,
+        password: event.password,
+        name: event.name,
+      );
 
-    result.fold(
-      (failure) => emit(state.copyWith(
+      if (authResult.isSuccess && authResult.user != null) {
+        emit(state.copyWith(
+          status: AuthStatus.authenticated,
+          user: authResult.user,
+          successMessage: authResult.message,
+        ));
+      } else {
+        emit(state.copyWith(
+          status: AuthStatus.unauthenticated,
+          errorMessage: authResult.errorMessage ?? 'Error de registro',
+        ));
+      }
+    } on AuthFailure catch (failure) {
+      emit(state.copyWith(
         status: AuthStatus.unauthenticated,
         errorMessage: failure.message,
-      )),
-      (authResult) => emit(state.copyWith(
-        status: AuthStatus.authenticated,
-        user: authResult.user,
-        successMessage: authResult.message,
-      )),
-    );
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        status: AuthStatus.unauthenticated,
+        errorMessage: 'Error desconocido',
+      ));
+    }
   }
 
   Future<void> _onAuthLogoutRequested(
@@ -117,17 +151,22 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(state.copyWith(status: AuthStatus.loading));
 
-    final result = await _logoutUseCase();
-    result.fold(
-      (failure) => emit(state.copyWith(
-        errorMessage: failure.message,
-      )),
-      (_) => emit(state.copyWith(
+    try {
+      await _logoutUseCase();
+      emit(state.copyWith(
         status: AuthStatus.unauthenticated,
         user: null,
         successMessage: 'Sesión cerrada exitosamente',
-      )),
-    );
+      ));
+    } on AuthFailure catch (failure) {
+      emit(state.copyWith(
+        errorMessage: failure.message,
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        errorMessage: 'Error al cerrar sesión',
+      ));
+    }
   }
 
   Future<void> _onAuthForgotPasswordRequested(
@@ -136,17 +175,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(state.copyWith(status: AuthStatus.loading));
 
-    final result = await _forgotPasswordUseCase(email: event.email);
-    result.fold(
-      (failure) => emit(state.copyWith(
-        status: state.user != null ? AuthStatus.authenticated : AuthStatus.unauthenticated,
-        errorMessage: failure.message,
-      )),
-      (_) => emit(state.copyWith(
+    try {
+      await _forgotPasswordUseCase(email: event.email);
+      emit(state.copyWith(
         status: state.user != null ? AuthStatus.authenticated : AuthStatus.unauthenticated,
         successMessage: 'Email de recuperación enviado',
-      )),
-    );
+      ));
+    } on AuthFailure catch (failure) {
+      emit(state.copyWith(
+        status: state.user != null ? AuthStatus.authenticated : AuthStatus.unauthenticated,
+        errorMessage: failure.message,
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        status: state.user != null ? AuthStatus.authenticated : AuthStatus.unauthenticated,
+        errorMessage: 'Error al enviar email de recuperación',
+      ));
+    }
   }
 
   void _onAuthStateChanged(

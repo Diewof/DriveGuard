@@ -1,5 +1,3 @@
-import 'package:dartz/dartz.dart';
-import '../../core/errors/auth_failures.dart';
 import '../entities/auth_result.dart';
 import '../repositories/auth_repository.dart';
 
@@ -8,7 +6,7 @@ class RegisterUseCase {
 
   RegisterUseCase(this.repository);
 
-  Future<Either<AuthFailure, AuthResult>> call({
+  Future<AuthResult> call({
     required String email,
     required String password,
     required String name,

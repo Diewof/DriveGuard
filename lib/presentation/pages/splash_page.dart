@@ -47,10 +47,9 @@ class _SplashPageState extends State<SplashPage> {
         if (state.status != AuthStatus.unknown && state.status != AuthStatus.loading) {
           Future.delayed(const Duration(milliseconds: 500), () {
             if (mounted) {
-              if (state.isAuthenticated) {
-                context.go('/dashboard');
-              } else {
-                context.go('/login');
+              final route = state.isAuthenticated ? '/dashboard' : '/login';
+              if (context.mounted) {
+                context.go(route);
               }
             }
           });

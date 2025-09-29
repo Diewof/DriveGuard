@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../domain/entities/user.dart';
 
 class UserModel extends User {
@@ -26,21 +25,6 @@ class UserModel extends User {
     );
   }
 
-  factory UserModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return UserModel(
-      id: doc.id,
-      email: data['email'] as String,
-      name: data['name'] as String,
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      lastLoginAt: data['lastLoginAt'] != null
-          ? (data['lastLoginAt'] as Timestamp).toDate()
-          : null,
-      isEmailVerified: data['isEmailVerified'] as bool? ?? false,
-      photoUrl: data['photoUrl'] as String?,
-    );
-  }
-
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -48,19 +32,6 @@ class UserModel extends User {
       'name': name,
       'createdAt': createdAt.toIso8601String(),
       'lastLoginAt': lastLoginAt?.toIso8601String(),
-      'isEmailVerified': isEmailVerified,
-      'photoUrl': photoUrl,
-    };
-  }
-
-  Map<String, dynamic> toFirestore() {
-    return {
-      'email': email,
-      'name': name,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'lastLoginAt': lastLoginAt != null
-          ? Timestamp.fromDate(lastLoginAt!)
-          : null,
       'isEmailVerified': isEmailVerified,
       'photoUrl': photoUrl,
     };

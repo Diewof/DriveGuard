@@ -1,4 +1,3 @@
-import 'package:dartz/dartz.dart';
 import '../../core/errors/auth_failures.dart';
 import '../../domain/entities/auth_result.dart';
 import '../../domain/entities/user.dart';
@@ -17,7 +16,7 @@ class AuthRepositoryImpl implements AuthRepository {
   });
 
   @override
-  Future<Either<AuthFailure, AuthResult>> login({
+  Future<AuthResult> login({
     required String email,
     required String password,
   }) async {
@@ -30,22 +29,20 @@ class AuthRepositoryImpl implements AuthRepository {
       // Cache user locally
       await localDataSource.cacheUser(user);
 
-      final authResult = AuthResultModel.create(
+      return AuthResultModel.create(
         user: user,
         isNewUser: false,
         message: 'Inicio de sesión exitoso',
       );
-
-      return Right(authResult);
     } on AuthFailure catch (failure) {
-      return Left(failure);
+      return AuthResultModel.failure(failure.message);
     } catch (e) {
-      return const Left(UnknownAuthFailure());
+      return AuthResultModel.failure('Error desconocido');
     }
   }
 
   @override
-  Future<Either<AuthFailure, AuthResult>> register({
+  Future<AuthResult> register({
     required String email,
     required String password,
     required String name,
@@ -60,56 +57,51 @@ class AuthRepositoryImpl implements AuthRepository {
       // Cache user locally
       await localDataSource.cacheUser(user);
 
-      final authResult = AuthResultModel.create(
+      return AuthResultModel.create(
         user: user,
         isNewUser: true,
         message: 'Cuenta creada exitosamente',
       );
-
-      return Right(authResult);
     } on AuthFailure catch (failure) {
-      return Left(failure);
+      return AuthResultModel.failure(failure.message);
     } catch (e) {
-      return const Left(UnknownAuthFailure());
+      return AuthResultModel.failure('Error desconocido');
     }
   }
 
   @override
-  Future<Either<AuthFailure, void>> logout() async {
+  Future<void> logout() async {
     try {
       await remoteDataSource.logout();
       await localDataSource.clearCache();
-      return const Right(null);
-    } on AuthFailure catch (failure) {
-      return Left(failure);
+    } on AuthFailure {
+      rethrow;
     } catch (e) {
-      return const Left(UnknownAuthFailure());
+      throw const UnknownAuthFailure();
     }
   }
 
   @override
-  Future<Either<AuthFailure, void>> sendPasswordResetEmail({
+  Future<void> sendPasswordResetEmail({
     required String email,
   }) async {
     try {
       await remoteDataSource.sendPasswordResetEmail(email: email);
-      return const Right(null);
-    } on AuthFailure catch (failure) {
-      return Left(failure);
+    } on AuthFailure {
+      rethrow;
     } catch (e) {
-      return const Left(UnknownAuthFailure());
+      throw const UnknownAuthFailure();
     }
   }
 
   @override
-  Future<Either<AuthFailure, User?>> getCurrentUser() async {
+  Future<User?> getCurrentUser() async {
     try {
-      final user = await remoteDataSource.getCurrentUser();
-      return Right(user);
-    } on AuthFailure catch (failure) {
-      return Left(failure);
+      return await remoteDataSource.getCurrentUser();
+    } on AuthFailure {
+      rethrow;
     } catch (e) {
-      return const Left(UnknownAuthFailure());
+      throw const UnknownAuthFailure();
     }
   }
 
@@ -119,15 +111,14 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<AuthFailure, void>> deleteAccount() async {
+  Future<void> deleteAccount() async {
     try {
       await remoteDataSource.deleteAccount();
       await localDataSource.clearCache();
-      return const Right(null);
-    } on AuthFailure catch (failure) {
-      return Left(failure);
+    } on AuthFailure {
+      rethrow;
     } catch (e) {
-      return const Left(UnknownAuthFailure());
+      throw const UnknownAuthFailure();
     }
   }
 }

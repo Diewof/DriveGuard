@@ -4,9 +4,11 @@ import 'user_model.dart';
 
 class AuthResultModel extends AuthResult {
   const AuthResultModel({
-    required super.user,
+    super.user,
     super.isNewUser,
     super.message,
+    super.errorMessage,
+    super.isSuccess,
   });
 
   factory AuthResultModel.fromDomain(AuthResult authResult) {
@@ -14,6 +16,8 @@ class AuthResultModel extends AuthResult {
       user: authResult.user,
       isNewUser: authResult.isNewUser,
       message: authResult.message,
+      errorMessage: authResult.errorMessage,
+      isSuccess: authResult.isSuccess,
     );
   }
 
@@ -26,6 +30,14 @@ class AuthResultModel extends AuthResult {
       user: UserModel.fromDomain(user),
       isNewUser: isNewUser,
       message: message,
+      isSuccess: true,
+    );
+  }
+
+  factory AuthResultModel.failure(String errorMessage) {
+    return AuthResultModel(
+      errorMessage: errorMessage,
+      isSuccess: false,
     );
   }
 }
