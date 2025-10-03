@@ -1,4 +1,5 @@
 import '../entities/auth_result.dart';
+import '../entities/emergency_contact.dart';
 import '../entities/user.dart';
 
 abstract class AuthRepository {
@@ -11,6 +12,10 @@ abstract class AuthRepository {
     required String email,
     required String password,
     required String name,
+    required String phoneNumber,
+    required String address,
+    required int age,
+    required List<EmergencyContact> emergencyContacts,
   });
 
   Future<void> logout();

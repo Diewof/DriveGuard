@@ -20,4 +20,12 @@ class Formatters {
   static String formatRiskScore(double score) {
     return score.toStringAsFixed(0);
   }
+
+  static String formatDateTime(DateTime dateTime) {
+    return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${formatTime(dateTime)}';
+  }
+
+  static String formatDate(DateTime dateTime) {
+    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+  }
 }

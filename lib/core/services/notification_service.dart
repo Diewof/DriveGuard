@@ -89,7 +89,7 @@ class NotificationService {
   factory NotificationService() => _instance;
   NotificationService._internal();
 
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  AudioPlayer? _audioPlayer;
   SharedPreferences? _prefs;
   Timer? _audioSequenceTimer;
 
@@ -101,6 +101,7 @@ class NotificationService {
   bool _silentMode = false;
   bool _isPlayingAudio = false;
   AudioPlaybackState _audioState = AudioPlaybackState.idle;
+  bool _isDisposed = false;
 
   // Límites de cola para optimizar memoria
   static const int maxQueueSize = 10;
@@ -111,8 +112,13 @@ class NotificationService {
   Function()? onHideOverlay;
 
   Future<void> initialize() async {
+    if (_isDisposed) return;
+
     _prefs = await SharedPreferences.getInstance();
     await _loadSettings();
+
+    // Inicializar AudioPlayer si no existe
+    _audioPlayer ??= AudioPlayer();
 
     // Configurar listener único para el AudioPlayer
     _setupAudioPlayerListener();
@@ -147,6 +153,8 @@ class NotificationService {
   void setSilentMode(bool silent) {
     _silentMode = silent;
   }
+
+  bool get isAudioReady => !_isDisposed && _audioPlayer != null;
 
   Future<void> showAlert({
     required AlertType type,
@@ -234,7 +242,7 @@ class NotificationService {
     }
 
     // Notificación auditiva (no bloqueante)
-    if (_settings.audioEnabled) {
+    if (_settings.audioEnabled && isAudioReady) {
       _playAudioAlert(notification);
     }
 
@@ -258,6 +266,10 @@ class NotificationService {
   }
 
   void _playAudioAlert(AlertNotification notification) {
+    if (_isDisposed || _audioPlayer == null) {
+      return;
+    }
+
     // Si ya hay audio reproduciéndose, detenerlo primero
     if (_isPlayingAudio) {
       _stopCurrentAudio();
@@ -268,17 +280,19 @@ class NotificationService {
     // Reproducir audio de forma no bloqueante
     _playAudioSequence(notification).catchError((e) {
       debugPrint('Error playing audio alert: $e');
-      _isPlayingAudio = false;
+      _resetAudioState();
     });
   }
 
   StreamSubscription? _audioCompleteSubscription;
 
   void _setupAudioPlayerListener() {
-    _audioCompleteSubscription?.cancel();
-    _audioCompleteSubscription = _audioPlayer.onPlayerComplete.listen((_) async {
+    if (_isDisposed || _audioPlayer == null) return;
 
-      if (!_isPlayingAudio || _currentNotification == null) {
+    _audioCompleteSubscription?.cancel();
+    _audioCompleteSubscription = _audioPlayer!.onPlayerComplete.listen((_) async {
+
+      if (_isDisposed || !_isPlayingAudio || _currentNotification == null || _audioPlayer == null) {
         return;
       }
 
@@ -289,10 +303,10 @@ class NotificationService {
           // Pausa mínima para evitar artifacts de audio
           await Future.delayed(const Duration(milliseconds: 200));
 
-          if (_isPlayingAudio && _currentNotification != null && _audioState == AudioPlaybackState.playingVoice) {
+          if (!_isDisposed && _isPlayingAudio && _currentNotification != null && _audioState == AudioPlaybackState.playingVoice && _audioPlayer != null) {
             try {
               final voiceFile = _getVoiceFile(_currentNotification!.type);
-              await _audioPlayer.play(AssetSource(voiceFile));
+              await _audioPlayer!.play(AssetSource(voiceFile));
             } catch (e) {
               debugPrint('Error playing voice: $e');
               _resetAudioState();
@@ -322,45 +336,60 @@ class NotificationService {
   AlertNotification? _currentNotification;
 
   Future<void> _playAudioSequence(AlertNotification notification) async {
+    if (_isDisposed || _audioPlayer == null) {
+      _resetAudioState();
+      return;
+    }
+
     try {
       _currentNotification = notification;
       _audioState = AudioPlaybackState.playingTone;
 
-
       // Configurar volumen una sola vez
       try {
-        await _audioPlayer.setVolume(_settings.volume);
+        if (!_isDisposed && _audioPlayer != null) {
+          await _audioPlayer!.setVolume(_settings.volume);
+        } else {
+          _resetAudioState();
+          return;
+        }
       } catch (e) {
         debugPrint('Error setting volume: $e');
         _resetAudioState();
-        rethrow;
+        return;
       }
 
       // Reproducir tono de alerta
       final audioFile = _getAudioFile(notification.severity);
       try {
-        await _audioPlayer.play(AssetSource(audioFile));
+        if (!_isDisposed && _audioPlayer != null) {
+          await _audioPlayer!.play(AssetSource(audioFile));
+        } else {
+          _resetAudioState();
+          return;
+        }
       } catch (e) {
         debugPrint('Error playing audio file: $e');
         _resetAudioState();
-        rethrow;
+        return;
       }
 
       // Programar la reproducción de voz después de 3 segundos (duración aproximada del tono)
       _audioSequenceTimer?.cancel();
       _audioSequenceTimer = Timer(const Duration(seconds: 3), () async {
-        await _playVoiceSequence();
+        if (!_isDisposed) {
+          await _playVoiceSequence();
+        }
       });
 
     } catch (e) {
       debugPrint('Error playing audio sequence: $e');
       _resetAudioState();
-      rethrow;
     }
   }
 
   Future<void> _playVoiceSequence() async {
-    if (_currentNotification == null || _audioState != AudioPlaybackState.playingTone) {
+    if (_isDisposed || _audioPlayer == null || _currentNotification == null || _audioState != AudioPlaybackState.playingTone) {
       _resetAudioState();
       return;
     }
@@ -370,17 +399,24 @@ class NotificationService {
       final voiceFile = _getVoiceFile(_currentNotification!.type);
 
       try {
-        await _audioPlayer.play(AssetSource(voiceFile));
+        if (!_isDisposed && _audioPlayer != null) {
+          await _audioPlayer!.play(AssetSource(voiceFile));
+        } else {
+          _resetAudioState();
+          return;
+        }
       } catch (e) {
         debugPrint('Error playing voice file: $e');
         _resetAudioState();
-        rethrow;
+        return;
       }
 
       // Programar finalización después de 4 segundos (duración aproximada de la voz)
       _audioSequenceTimer?.cancel();
       _audioSequenceTimer = Timer(const Duration(seconds: 4), () {
-        _resetAudioState();
+        if (!_isDisposed) {
+          _resetAudioState();
+        }
       });
 
     } catch (e) {
@@ -391,7 +427,9 @@ class NotificationService {
 
   void _stopCurrentAudio() {
     try {
-      _audioPlayer.stop();
+      if (!_isDisposed && _audioPlayer != null) {
+        _audioPlayer!.stop();
+      }
     } catch (e) {
       debugPrint('Error stopping audio player: $e');
     }
@@ -507,10 +545,26 @@ class NotificationService {
   }
 
   void dispose() {
+    if (_isDisposed) return;
+
+    _isDisposed = true;
     _stopCurrentAudio();
     _audioCompleteSubscription?.cancel();
-    _audioPlayer.dispose();
+    _audioCompleteSubscription = null;
+
+    try {
+      _audioPlayer?.dispose();
+    } catch (e) {
+      debugPrint('Error disposing audio player: $e');
+    }
+    _audioPlayer = null;
+
     _cooldownTimer?.cancel();
+    _cooldownTimer = null;
     _audioSequenceTimer?.cancel();
+    _audioSequenceTimer = null;
+
+    _notificationQueue.clear();
+    _currentNotification = null;
   }
 }

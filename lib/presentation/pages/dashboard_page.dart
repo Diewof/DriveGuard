@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../blocs/auth/auth_bloc.dart';
 import '../blocs/auth/auth_event.dart';
 import '../blocs/dashboard/dashboard_bloc.dart';
+import '../blocs/session/session_bloc.dart';
 import '../widgets/dashboard/control_panel.dart';
 import '../widgets/dashboard/risk_indicator.dart';
 import '../widgets/dashboard/status_indicator.dart';
@@ -21,7 +22,10 @@ class DashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => DashboardBloc(),
+      create: (context) => DashboardBloc(
+        sessionBloc: context.read<SessionBloc>(),
+        authBloc: context.read<AuthBloc>(),
+      ),
       child: const DashboardView(),
     );
   }
@@ -262,6 +266,22 @@ class _DashboardViewState extends State<DashboardView>
                 ),
               ],
             ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.person, color: AppColors.primary),
+            title: const Text('Mi Perfil'),
+            onTap: () {
+              Navigator.pop(context);
+              context.push('/profile');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.history, color: AppColors.primary),
+            title: const Text('Historial'),
+            onTap: () {
+              Navigator.pop(context);
+              context.push('/history');
+            },
           ),
           ListTile(
             leading: const Icon(Icons.settings, color: AppColors.primary),

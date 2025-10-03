@@ -1,5 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '../../../core/errors/auth_failures.dart';
+import '../../../domain/entities/emergency_contact.dart';
 import '../../models/user_model.dart';
 
 abstract class FirebaseAuthDataSource {
@@ -12,6 +14,10 @@ abstract class FirebaseAuthDataSource {
     required String email,
     required String password,
     required String name,
+    required String phoneNumber,
+    required String address,
+    required int age,
+    required List<EmergencyContact> emergencyContacts,
   });
 
   Future<void> logout();
@@ -29,10 +35,13 @@ abstract class FirebaseAuthDataSource {
 
 class FirebaseAuthDataSourceImpl implements FirebaseAuthDataSource {
   final firebase_auth.FirebaseAuth _firebaseAuth;
+  final FirebaseFirestore _firestore;
 
   FirebaseAuthDataSourceImpl({
     firebase_auth.FirebaseAuth? firebaseAuth,
-  }) : _firebaseAuth = firebaseAuth ?? firebase_auth.FirebaseAuth.instance;
+    FirebaseFirestore? firestore,
+  })  : _firebaseAuth = firebaseAuth ?? firebase_auth.FirebaseAuth.instance,
+        _firestore = firestore ?? FirebaseFirestore.instance;
 
   @override
   Future<UserModel> login({
@@ -50,14 +59,37 @@ class FirebaseAuthDataSourceImpl implements FirebaseAuthDataSource {
         throw const UnknownAuthFailure();
       }
 
+      // Obtener datos adicionales de Firestore
+      final userDoc = await _firestore
+          .collection('users')
+          .doc(firebaseUser.uid)
+          .get();
+
+      if (!userDoc.exists) {
+        // Si no existe el documento, crear uno básico
+        return UserModel(
+          id: firebaseUser.uid,
+          email: firebaseUser.email!,
+          name: firebaseUser.displayName ?? email.split('@')[0],
+          createdAt: DateTime.now(),
+          lastLoginAt: DateTime.now(),
+          isEmailVerified: firebaseUser.emailVerified,
+          photoUrl: firebaseUser.photoURL,
+        );
+      }
+
+      final data = userDoc.data()!;
       return UserModel(
         id: firebaseUser.uid,
         email: firebaseUser.email!,
-        name: firebaseUser.displayName ?? email.split('@')[0],
-        createdAt: DateTime.now(),
+        name: data['name'] ?? firebaseUser.displayName ?? email.split('@')[0],
+        phoneNumber: data['phoneNumber'],
+        address: data['address'],
+        age: data['age'],
+        createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
         lastLoginAt: DateTime.now(),
         isEmailVerified: firebaseUser.emailVerified,
-        photoUrl: firebaseUser.photoURL,
+        photoUrl: data['photoUrl'] ?? firebaseUser.photoURL,
       );
     } on firebase_auth.FirebaseAuthException catch (e) {
       throw _mapFirebaseException(e);
@@ -71,8 +103,13 @@ class FirebaseAuthDataSourceImpl implements FirebaseAuthDataSource {
     required String email,
     required String password,
     required String name,
+    required String phoneNumber,
+    required String address,
+    required int age,
+    required List<EmergencyContact> emergencyContacts,
   }) async {
     try {
+      // 1. Crear usuario en Firebase Authentication
       final credential = await _firebaseAuth.createUserWithEmailAndPassword(
         email: email,
         password: password,
@@ -83,22 +120,62 @@ class FirebaseAuthDataSourceImpl implements FirebaseAuthDataSource {
         throw const UnknownAuthFailure();
       }
 
-      // Actualizar el displayName
+      // 2. Actualizar el displayName
       await firebaseUser.updateDisplayName(name);
 
+      final userId = firebaseUser.uid;
+      final now = Timestamp.now();
+
+      // 3. Crear documento del usuario en Firestore
+      await _firestore.collection('users').doc(userId).set({
+        'email': email,
+        'name': name,
+        'phoneNumber': phoneNumber,
+        'address': address,
+        'age': age,
+        'createdAt': now,
+        'updatedAt': now,
+        'isActive': true,
+        'photoUrl': '',
+      });
+
+      // 4. Crear subcolección de contactos de emergencia
+      final batch = _firestore.batch();
+      for (var contact in emergencyContacts) {
+        final contactRef = _firestore
+            .collection('users')
+            .doc(userId)
+            .collection('emergency_contacts')
+            .doc();
+
+        batch.set(contactRef, {
+          'userId': userId,
+          'name': contact.name,
+          'phoneNumber': contact.phoneNumber,
+          'relationship': contact.relationship,
+          'priority': contact.priority,
+          'isActive': contact.isActive,
+          'createdAt': now,
+        });
+      }
+      await batch.commit();
+
       return UserModel(
-        id: firebaseUser.uid,
+        id: userId,
         email: email,
         name: name,
-        createdAt: DateTime.now(),
-        lastLoginAt: DateTime.now(),
+        phoneNumber: phoneNumber,
+        address: address,
+        age: age,
+        createdAt: now.toDate(),
+        lastLoginAt: now.toDate(),
         isEmailVerified: firebaseUser.emailVerified,
-        photoUrl: firebaseUser.photoURL,
+        photoUrl: '',
       );
     } on firebase_auth.FirebaseAuthException catch (e) {
       throw _mapFirebaseException(e);
     } catch (e) {
-      throw const UnknownAuthFailure();
+      throw UnknownAuthFailure(message: 'Error al registrar: $e');
     }
   }
 
@@ -128,14 +205,36 @@ class FirebaseAuthDataSourceImpl implements FirebaseAuthDataSource {
       final firebaseUser = _firebaseAuth.currentUser;
       if (firebaseUser == null) return null;
 
+      // Obtener datos adicionales de Firestore
+      final userDoc = await _firestore
+          .collection('users')
+          .doc(firebaseUser.uid)
+          .get();
+
+      if (!userDoc.exists) {
+        return UserModel(
+          id: firebaseUser.uid,
+          email: firebaseUser.email!,
+          name: firebaseUser.displayName ?? firebaseUser.email!.split('@')[0],
+          createdAt: DateTime.now(),
+          lastLoginAt: DateTime.now(),
+          isEmailVerified: firebaseUser.emailVerified,
+          photoUrl: firebaseUser.photoURL,
+        );
+      }
+
+      final data = userDoc.data()!;
       return UserModel(
         id: firebaseUser.uid,
         email: firebaseUser.email!,
-        name: firebaseUser.displayName ?? firebaseUser.email!.split('@')[0],
-        createdAt: DateTime.now(),
+        name: data['name'] ?? firebaseUser.displayName ?? firebaseUser.email!.split('@')[0],
+        phoneNumber: data['phoneNumber'],
+        address: data['address'],
+        age: data['age'],
+        createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
         lastLoginAt: DateTime.now(),
         isEmailVerified: firebaseUser.emailVerified,
-        photoUrl: firebaseUser.photoURL,
+        photoUrl: data['photoUrl'] ?? firebaseUser.photoURL,
       );
     } catch (e) {
       return null;
@@ -144,18 +243,52 @@ class FirebaseAuthDataSourceImpl implements FirebaseAuthDataSource {
 
   @override
   Stream<UserModel?> get authStateChanges {
-    return _firebaseAuth.authStateChanges().map((firebaseUser) {
+    return _firebaseAuth.authStateChanges().asyncMap((firebaseUser) async {
       if (firebaseUser == null) return null;
 
-      return UserModel(
-        id: firebaseUser.uid,
-        email: firebaseUser.email!,
-        name: firebaseUser.displayName ?? firebaseUser.email!.split('@')[0],
-        createdAt: DateTime.now(),
-        lastLoginAt: DateTime.now(),
-        isEmailVerified: firebaseUser.emailVerified,
-        photoUrl: firebaseUser.photoURL,
-      );
+      // Obtener datos adicionales de Firestore
+      try {
+        final userDoc = await _firestore
+            .collection('users')
+            .doc(firebaseUser.uid)
+            .get();
+
+        if (!userDoc.exists) {
+          return UserModel(
+            id: firebaseUser.uid,
+            email: firebaseUser.email!,
+            name: firebaseUser.displayName ?? firebaseUser.email!.split('@')[0],
+            createdAt: DateTime.now(),
+            lastLoginAt: DateTime.now(),
+            isEmailVerified: firebaseUser.emailVerified,
+            photoUrl: firebaseUser.photoURL,
+          );
+        }
+
+        final data = userDoc.data()!;
+        return UserModel(
+          id: firebaseUser.uid,
+          email: firebaseUser.email!,
+          name: data['name'] ?? firebaseUser.displayName ?? firebaseUser.email!.split('@')[0],
+          phoneNumber: data['phoneNumber'],
+          address: data['address'],
+          age: data['age'],
+          createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+          lastLoginAt: DateTime.now(),
+          isEmailVerified: firebaseUser.emailVerified,
+          photoUrl: data['photoUrl'] ?? firebaseUser.photoURL,
+        );
+      } catch (e) {
+        return UserModel(
+          id: firebaseUser.uid,
+          email: firebaseUser.email!,
+          name: firebaseUser.displayName ?? firebaseUser.email!.split('@')[0],
+          createdAt: DateTime.now(),
+          lastLoginAt: DateTime.now(),
+          isEmailVerified: firebaseUser.emailVerified,
+          photoUrl: firebaseUser.photoURL,
+        );
+      }
     });
   }
 
@@ -164,6 +297,10 @@ class FirebaseAuthDataSourceImpl implements FirebaseAuthDataSource {
     try {
       final user = _firebaseAuth.currentUser;
       if (user != null) {
+        // Eliminar documento de Firestore
+        await _firestore.collection('users').doc(user.uid).delete();
+
+        // Eliminar cuenta de Authentication
         await user.delete();
       }
     } on firebase_auth.FirebaseAuthException catch (e) {

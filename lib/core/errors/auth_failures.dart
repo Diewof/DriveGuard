@@ -42,5 +42,5 @@ class NetworkRequestFailure extends AuthFailure {
 }
 
 class UnknownAuthFailure extends AuthFailure {
-  const UnknownAuthFailure() : super('Error desconocido. Intenta nuevamente');
+  const UnknownAuthFailure({String? message}) : super(message ?? 'Error desconocido. Intenta nuevamente');
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class AuthTextField extends StatefulWidget {
   final String label;
@@ -9,6 +10,7 @@ class AuthTextField extends StatefulWidget {
   final TextInputType keyboardType;
   final Widget? prefixIcon;
   final bool enabled;
+  final List<TextInputFormatter>? inputFormatters;
 
   const AuthTextField({
     super.key,
@@ -20,6 +22,7 @@ class AuthTextField extends StatefulWidget {
     this.keyboardType = TextInputType.text,
     this.prefixIcon,
     this.enabled = true,
+    this.inputFormatters,
   });
 
   @override
@@ -49,6 +52,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
           keyboardType: widget.keyboardType,
           validator: widget.validator,
           enabled: widget.enabled,
+          inputFormatters: widget.inputFormatters,
           decoration: InputDecoration(
             hintText: widget.hint,
             prefixIcon: widget.prefixIcon,

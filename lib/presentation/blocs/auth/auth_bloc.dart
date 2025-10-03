@@ -118,6 +118,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         email: event.email,
         password: event.password,
         name: event.name,
+        phoneNumber: event.phoneNumber,
+        address: event.address,
+        age: event.age,
+        emergencyContacts: event.emergencyContacts,
       );
 
       if (authResult.isSuccess && authResult.user != null) {

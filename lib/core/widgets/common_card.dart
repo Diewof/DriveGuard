@@ -3,18 +3,21 @@ import 'package:flutter/material.dart';
 class CommonCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
+  final EdgeInsetsGeometry? margin;
   final BorderRadius? borderRadius;
 
   const CommonCard({
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(16),
+    this.margin,
     this.borderRadius,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      margin: margin,
       padding: padding,
       decoration: BoxDecoration(
         color: Colors.white,

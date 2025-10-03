@@ -28,6 +28,13 @@ dependencies:
   # Notificaciones multimodales
   audioplayers: ^5.2.1
   vibration: ^3.1.0
+  cloud_firestore: ^4.17.5
+
+  # Location services
+  geolocator: ^10.1.0
+
+  # Functional programming
+  dartz: ^0.10.1
   
 dev_dependencies:
   flutter_test:

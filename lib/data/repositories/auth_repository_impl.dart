@@ -1,5 +1,6 @@
 import '../../core/errors/auth_failures.dart';
 import '../../domain/entities/auth_result.dart';
+import '../../domain/entities/emergency_contact.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/local/auth_local_datasource.dart';
@@ -46,12 +47,20 @@ class AuthRepositoryImpl implements AuthRepository {
     required String email,
     required String password,
     required String name,
+    required String phoneNumber,
+    required String address,
+    required int age,
+    required List<EmergencyContact> emergencyContacts,
   }) async {
     try {
       final user = await remoteDataSource.register(
         email: email,
         password: password,
         name: name,
+        phoneNumber: phoneNumber,
+        address: address,
+        age: age,
+        emergencyContacts: emergencyContacts,
       );
 
       // Cache user locally
@@ -65,7 +74,7 @@ class AuthRepositoryImpl implements AuthRepository {
     } on AuthFailure catch (failure) {
       return AuthResultModel.failure(failure.message);
     } catch (e) {
-      return AuthResultModel.failure('Error desconocido');
+      return AuthResultModel.failure('Error desconocido: $e');
     }
   }
 

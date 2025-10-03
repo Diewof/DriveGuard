@@ -8,13 +8,21 @@ import 'core/routing/app_router.dart';
 import 'data/datasources/local/auth_local_datasource.dart';
 import 'data/datasources/remote/firebase_auth_datasource.dart';
 import 'data/repositories/auth_repository_impl.dart';
+import 'data/repositories/session_repository_impl.dart';
 import 'domain/usecases/forgot_password_usecase.dart';
 import 'domain/usecases/get_current_user_usecase.dart';
 import 'domain/usecases/login_usecase.dart';
 import 'domain/usecases/logout_usecase.dart';
 import 'domain/usecases/register_usecase.dart';
+import 'domain/usecases/start_session_usecase.dart';
+import 'domain/usecases/end_session_usecase.dart';
+import 'domain/usecases/add_session_event_usecase.dart';
+import 'domain/usecases/get_user_sessions_usecase.dart';
+import 'domain/usecases/get_session_events_usecase.dart';
+import 'domain/usecases/get_active_session_usecase.dart';
 import 'presentation/blocs/auth/auth_bloc.dart';
 import 'presentation/blocs/auth/auth_event.dart';
+import 'presentation/blocs/session/session_bloc.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,7 +52,7 @@ class DriveGuardApp extends StatelessWidget {
       providers: [
         BlocProvider(
           create: (context) {
-            // Configurar dependencias
+            // Configurar dependencias de autenticación
             final remoteDataSource = FirebaseAuthDataSourceImpl();
             final localDataSource = AuthLocalDataSourceImpl(
               prefs: sharedPreferences,
@@ -54,7 +62,7 @@ class DriveGuardApp extends StatelessWidget {
               localDataSource: localDataSource,
             );
 
-            // Crear UseCases
+            // Crear UseCases de autenticación
             final loginUseCase = LoginUseCase(authRepository);
             final registerUseCase = RegisterUseCase(authRepository);
             final logoutUseCase = LogoutUseCase(authRepository);
@@ -74,6 +82,30 @@ class DriveGuardApp extends StatelessWidget {
             authBloc.add(AuthCheckRequested());
 
             return authBloc;
+          },
+        ),
+        BlocProvider(
+          create: (context) {
+            // Configurar dependencias de sesión
+            final sessionRepository = SessionRepositoryImpl();
+
+            // Crear UseCases de sesión
+            final startSessionUseCase = StartSessionUseCase(sessionRepository);
+            final endSessionUseCase = EndSessionUseCase(sessionRepository);
+            final addSessionEventUseCase = AddSessionEventUseCase(sessionRepository);
+            final getUserSessionsUseCase = GetUserSessionsUseCase(sessionRepository);
+            final getSessionEventsUseCase = GetSessionEventsUseCase(sessionRepository);
+            final getActiveSessionUseCase = GetActiveSessionUseCase(sessionRepository);
+
+            // Crear y configurar SessionBloc
+            return SessionBloc(
+              startSessionUseCase: startSessionUseCase,
+              endSessionUseCase: endSessionUseCase,
+              addSessionEventUseCase: addSessionEventUseCase,
+              getUserSessionsUseCase: getUserSessionsUseCase,
+              getSessionEventsUseCase: getSessionEventsUseCase,
+              getActiveSessionUseCase: getActiveSessionUseCase,
+            );
           },
         ),
       ],
