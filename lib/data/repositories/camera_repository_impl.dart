@@ -53,4 +53,10 @@ class CameraRepositoryImpl implements CameraRepository {
 
   @override
   int get frameCount => _httpServerService.frameCount;
+
+  @override
+  Stream<String> get esp32ConnectedStream => _httpServerService.esp32ConnectedStream;
+
+  @override
+  Map<String, dynamic> getServerInfo() => _httpServerService.getServerInfo();
 }

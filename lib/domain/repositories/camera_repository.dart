@@ -30,4 +30,10 @@ abstract class CameraRepository {
 
   /// Obtiene el contador de frames recibidos
   int get frameCount;
+
+  /// Stream que notifica cuando un ESP32 se conecta (emite la IP del ESP32)
+  Stream<String> get esp32ConnectedStream;
+
+  /// Obtiene información del servidor (IP, puerto, estado)
+  Map<String, dynamic> getServerInfo();
 }

@@ -6,6 +6,7 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
 import '../../models/camera_frame.dart';
+import '../../../core/services/network_discovery_service.dart';
 
 /// Servicio que gestiona el servidor HTTP embebido para recibir imágenes del ESP32-CAM
 class HttpServerService {
@@ -15,9 +16,16 @@ class HttpServerService {
 
   HttpServer? _server;
   final _frameController = StreamController<CameraFrame>.broadcast();
+  final NetworkDiscoveryService _discoveryService;
   CameraFrame? _lastFrame;
   int _frameCount = 0;
   String? _serverAddress;
+  String? _localIp;
+  int? _currentPort;
+
+  /// Constructor
+  HttpServerService({NetworkDiscoveryService? discoveryService})
+      : _discoveryService = discoveryService ?? NetworkDiscoveryService();
 
   /// Stream que emite frames cada vez que llega una imagen nueva
   Stream<CameraFrame> get frameStream => _frameController.stream;
@@ -33,6 +41,19 @@ class HttpServerService {
 
   /// Indica si el servidor está activo
   bool get isRunning => _server != null;
+
+  /// Stream que notifica cuando se conecta un ESP32
+  Stream<String> get esp32ConnectedStream => _discoveryService.esp32ConnectedStream;
+
+  /// Retorna información actual del servidor
+  Map<String, dynamic> getServerInfo() {
+    return {
+      'ip': _localIp,
+      'port': _currentPort,
+      'address': _serverAddress,
+      'isRunning': isRunning,
+    };
+  }
 
   /// Inicia el servidor HTTP en el puerto especificado
   Future<void> startServer({int port = defaultPort}) async {
@@ -67,10 +88,18 @@ class HttpServerService {
         port,
       );
 
-      _serverAddress = '${_server!.address.address}:${_server!.port}';
+      _localIp = _server!.address.address;
+      _currentPort = _server!.port;
+      _serverAddress = '$_localIp:$_currentPort';
 
       print('✅ Servidor HTTP iniciado en http://$_serverAddress');
       print('📡 Esperando conexión del ESP32-CAM...');
+
+      // Iniciar broadcasting UDP para auto-descubrimiento
+      await _discoveryService.startBroadcasting(
+        serverIp: _localIp!,
+        serverPort: _currentPort!,
+      );
     } catch (e) {
       print('❌ Error al iniciar servidor: $e');
 
@@ -92,9 +121,14 @@ class HttpServerService {
     }
 
     try {
+      // Detener broadcasting UDP
+      await _discoveryService.stopBroadcasting();
+
       await _server!.close(force: true);
       _server = null;
       _serverAddress = null;
+      _localIp = null;
+      _currentPort = null;
       print('🛑 Servidor HTTP detenido');
     } catch (e) {
       print('❌ Error al detener servidor: $e');
@@ -278,6 +312,7 @@ class HttpServerService {
   /// Libera recursos
   Future<void> dispose() async {
     await stopServer();
+    await _discoveryService.dispose();
     await _frameController.close();
     _lastFrame = null;
   }

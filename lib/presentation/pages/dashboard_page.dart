@@ -10,11 +10,13 @@ import '../widgets/dashboard/risk_indicator.dart';
 import '../widgets/dashboard/status_indicator.dart';
 import '../widgets/dashboard/stats_cards.dart';
 import '../widgets/alerts/alert_overlay.dart';
+import '../widgets/esp32/esp32_connection_indicator.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/app_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/common_card.dart';
 import '../../core/services/notification_service.dart';
+import '../../domain/repositories/camera_repository.dart';
 import 'esp32/esp32_debug_page.dart';
 
 class DashboardPage extends StatelessWidget {
@@ -129,6 +131,8 @@ class _DashboardViewState extends State<DashboardView>
                     sessionDuration: state.sessionDuration,
                     onToggleMonitoring: () => _toggleMonitoring(context, state),
                   ),
+                  const SizedBox(height: 16),
+                  _buildEsp32ConnectionIndicator(context),
                   const SizedBox(height: 16),
                   Row(
                     children: [
@@ -318,6 +322,41 @@ class _DashboardViewState extends State<DashboardView>
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildEsp32ConnectionIndicator(BuildContext context) {
+    final cameraRepository = context.read<CameraRepository>();
+    final serverInfo = cameraRepository.getServerInfo();
+    final isRunning = serverInfo['isRunning'] as bool;
+
+    if (!isRunning) {
+      return const SizedBox.shrink();
+    }
+
+    return StreamBuilder<String>(
+      stream: cameraRepository.esp32ConnectedStream,
+      builder: (context, esp32Snapshot) {
+        // Determinar estado de conexión
+        Esp32ConnectionStatus status;
+        String? esp32Ip;
+
+        if (esp32Snapshot.hasData) {
+          status = Esp32ConnectionStatus.connected;
+          esp32Ip = esp32Snapshot.data;
+        } else if (cameraRepository.frameCount > 0) {
+          status = Esp32ConnectionStatus.connected;
+        } else {
+          status = Esp32ConnectionStatus.waiting;
+        }
+
+        return Esp32ConnectionIndicator(
+          status: status,
+          esp32Ip: esp32Ip,
+          serverIp: serverInfo['ip'] as String?,
+          serverPort: serverInfo['port'] as int?,
+        );
+      },
     );
   }
 
