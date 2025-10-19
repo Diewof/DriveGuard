@@ -15,6 +15,7 @@ import '../../core/utils/app_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/common_card.dart';
 import '../../core/services/notification_service.dart';
+import 'esp32/esp32_debug_page.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -289,6 +290,20 @@ class _DashboardViewState extends State<DashboardView>
             onTap: () {
               Navigator.pop(context);
               context.push(AppConstants.notificationSettingsRoute);
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+            title: const Text('ESP32-CAM Debug'),
+            subtitle: const Text('Visualizar stream ESP32', style: TextStyle(fontSize: 12)),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const ESP32DebugPage(),
+                ),
+              );
             },
           ),
           const Divider(),

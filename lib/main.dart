@@ -23,6 +23,10 @@ import 'domain/usecases/get_active_session_usecase.dart';
 import 'presentation/blocs/auth/auth_bloc.dart';
 import 'presentation/blocs/auth/auth_event.dart';
 import 'presentation/blocs/session/session_bloc.dart';
+import 'presentation/blocs/camera_stream/camera_stream_bloc.dart';
+import 'data/datasources/local/http_server_service.dart';
+import 'data/repositories/camera_repository_impl.dart';
+import 'domain/repositories/camera_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -105,6 +109,20 @@ class DriveGuardApp extends StatelessWidget {
               getUserSessionsUseCase: getUserSessionsUseCase,
               getSessionEventsUseCase: getSessionEventsUseCase,
               getActiveSessionUseCase: getActiveSessionUseCase,
+            );
+          },
+        ),
+        BlocProvider(
+          create: (context) {
+            // Configurar servidor HTTP para ESP32-CAM
+            final httpServerService = HttpServerService();
+            final CameraRepository cameraRepository = CameraRepositoryImpl(
+              httpServerService: httpServerService,
+            );
+
+            // Crear y configurar CameraStreamBloc
+            return CameraStreamBloc(
+              cameraRepository: cameraRepository,
             );
           },
         ),
