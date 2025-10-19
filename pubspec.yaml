@@ -41,10 +41,6 @@ dependencies:
   shelf_router: ^1.1.0
   permission_handler: ^11.0.0
   intl: ^0.18.0
-
-  # UDP para auto-descubrimiento de ESP32
-  udp: ^5.0.3
-  network_info_plus: ^5.0.2
   
 dev_dependencies:
   flutter_test:

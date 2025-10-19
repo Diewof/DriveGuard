@@ -326,38 +326,44 @@ class _DashboardViewState extends State<DashboardView>
   }
 
   Widget _buildEsp32ConnectionIndicator(BuildContext context) {
-    final cameraRepository = context.read<CameraRepository>();
-    final serverInfo = cameraRepository.getServerInfo();
-    final isRunning = serverInfo['isRunning'] as bool;
+    // Usar watch en lugar de read para reactividad si el servidor cambia de estado
+    try {
+      final cameraRepository = context.read<CameraRepository>();
+      final serverInfo = cameraRepository.getServerInfo();
+      final isRunning = serverInfo['isRunning'] as bool? ?? false;
 
-    if (!isRunning) {
+      if (!isRunning) {
+        return const SizedBox.shrink();
+      }
+
+      return StreamBuilder<String>(
+        stream: cameraRepository.esp32ConnectedStream,
+        builder: (context, esp32Snapshot) {
+          // Determinar estado de conexión
+          Esp32ConnectionStatus status;
+          String? esp32Ip;
+
+          if (esp32Snapshot.hasData) {
+            status = Esp32ConnectionStatus.connected;
+            esp32Ip = esp32Snapshot.data;
+          } else if (cameraRepository.frameCount > 0) {
+            status = Esp32ConnectionStatus.connected;
+          } else {
+            status = Esp32ConnectionStatus.waiting;
+          }
+
+          return Esp32ConnectionIndicator(
+            status: status,
+            esp32Ip: esp32Ip,
+            serverIp: serverInfo['ip'] as String?,
+            serverPort: serverInfo['port'] as int?,
+          );
+        },
+      );
+    } catch (e) {
+      // Si hay error al acceder al repository, mostrar widget vacío
       return const SizedBox.shrink();
     }
-
-    return StreamBuilder<String>(
-      stream: cameraRepository.esp32ConnectedStream,
-      builder: (context, esp32Snapshot) {
-        // Determinar estado de conexión
-        Esp32ConnectionStatus status;
-        String? esp32Ip;
-
-        if (esp32Snapshot.hasData) {
-          status = Esp32ConnectionStatus.connected;
-          esp32Ip = esp32Snapshot.data;
-        } else if (cameraRepository.frameCount > 0) {
-          status = Esp32ConnectionStatus.connected;
-        } else {
-          status = Esp32ConnectionStatus.waiting;
-        }
-
-        return Esp32ConnectionIndicator(
-          status: status,
-          esp32Ip: esp32Ip,
-          serverIp: serverInfo['ip'] as String?,
-          serverPort: serverInfo['port'] as int?,
-        );
-      },
-    );
   }
 
   Widget _buildSensorData(DashboardState state) {

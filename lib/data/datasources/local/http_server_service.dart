@@ -6,7 +6,6 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
 import '../../models/camera_frame.dart';
-import '../../../core/services/network_discovery_service.dart';
 
 /// Servicio que gestiona el servidor HTTP embebido para recibir imágenes del ESP32-CAM
 class HttpServerService {
@@ -16,7 +15,7 @@ class HttpServerService {
 
   HttpServer? _server;
   final _frameController = StreamController<CameraFrame>.broadcast();
-  final NetworkDiscoveryService _discoveryService;
+  final _esp32ConnectedController = StreamController<String>.broadcast();
   CameraFrame? _lastFrame;
   int _frameCount = 0;
   String? _serverAddress;
@@ -24,8 +23,7 @@ class HttpServerService {
   int? _currentPort;
 
   /// Constructor
-  HttpServerService({NetworkDiscoveryService? discoveryService})
-      : _discoveryService = discoveryService ?? NetworkDiscoveryService();
+  HttpServerService();
 
   /// Stream que emite frames cada vez que llega una imagen nueva
   Stream<CameraFrame> get frameStream => _frameController.stream;
@@ -43,7 +41,7 @@ class HttpServerService {
   bool get isRunning => _server != null;
 
   /// Stream que notifica cuando se conecta un ESP32
-  Stream<String> get esp32ConnectedStream => _discoveryService.esp32ConnectedStream;
+  Stream<String> get esp32ConnectedStream => _esp32ConnectedController.stream;
 
   /// Retorna información actual del servidor
   Map<String, dynamic> getServerInfo() {
@@ -72,34 +70,38 @@ class HttpServerService {
       // Endpoint GET /status para verificar estado del servidor
       router.get('/status', _handleStatusCheck);
 
+      // Endpoint POST /handshake para auto-descubrimiento del ESP32
+      router.post('/handshake', _handleHandshake);
+
       // Handler con middleware de logging
       final handler = Pipeline()
           .addMiddleware(logRequests())
           .addMiddleware(_corsMiddleware())
           .addHandler(router);
 
-      // Obtener IP local
-      final ip = await _getLocalIpAddress();
-
-      // Iniciar servidor
+      // Escuchar en TODAS las interfaces de red (0.0.0.0)
+      // Esto es necesario cuando el celular tiene múltiples interfaces activas:
+      // - Interfaz de datos móviles (ej: 10.77.173.173)
+      // - Interfaz de hotspot WiFi (ej: 10.220.212.167)
       _server = await shelf_io.serve(
         handler,
-        ip,
+        InternetAddress.anyIPv4, // 0.0.0.0 - escucha en TODAS las interfaces
         port,
       );
 
-      _localIp = _server!.address.address;
       _currentPort = _server!.port;
-      _serverAddress = '$_localIp:$_currentPort';
 
-      print('✅ Servidor HTTP iniciado en http://$_serverAddress');
-      print('📡 Esperando conexión del ESP32-CAM...');
+      // Obtener IPs de todas las interfaces para mostrar al usuario
+      final ips = await _getAllIpAddresses();
+      _localIp = ips.isNotEmpty ? ips.first : '0.0.0.0';
+      _serverAddress = '0.0.0.0:$_currentPort';
 
-      // Iniciar broadcasting UDP para auto-descubrimiento
-      await _discoveryService.startBroadcasting(
-        serverIp: _localIp!,
-        serverPort: _currentPort!,
-      );
+      print('✅ Servidor HTTP iniciado en puerto $_currentPort');
+      print('📡 Escuchando en TODAS las interfaces:');
+      for (final ip in ips) {
+        print('   • http://$ip:$_currentPort');
+      }
+      print('📡 Esperando conexión del ESP32-CAM (mediante gateway)...');
     } catch (e) {
       print('❌ Error al iniciar servidor: $e');
 
@@ -121,9 +123,6 @@ class HttpServerService {
     }
 
     try {
-      // Detener broadcasting UDP
-      await _discoveryService.stopBroadcasting();
-
       await _server!.close(force: true);
       _server = null;
       _serverAddress = null;
@@ -247,6 +246,55 @@ class HttpServerService {
     );
   }
 
+  /// Handler para el endpoint POST /handshake
+  /// Permite que el ESP32 se anuncie y detecte el servidor
+  Future<Response> _handleHandshake(Request request) async {
+    try {
+      final bodyString = await request.readAsString();
+      final Map<String, dynamic> body = json.decode(bodyString);
+
+      // Extraer información del ESP32
+      final String? esp32Type = body['type'] as String?;
+      final String? esp32Ip = body['ip'] as String?;
+      final String? esp32Mac = body['mac'] as String?;
+
+      if (esp32Type == 'ESP32_HANDSHAKE' && esp32Ip != null) {
+        print('🤝 Handshake recibido del ESP32-CAM');
+        print('   IP ESP32: $esp32Ip');
+        if (esp32Mac != null) {
+          print('   MAC: $esp32Mac');
+        }
+
+        // Notificar conexión del ESP32
+        if (!_esp32ConnectedController.isClosed) {
+          _esp32ConnectedController.add(esp32Ip);
+        }
+
+        return Response.ok(
+          json.encode({
+            'status': 'ok',
+            'message': 'Handshake exitoso',
+            'serverIp': _localIp,
+            'serverPort': _currentPort,
+            'timestamp': DateTime.now().toIso8601String(),
+          }),
+          headers: {'Content-Type': 'application/json'},
+        );
+      } else {
+        return Response.badRequest(
+          body: json.encode({'error': 'Handshake inválido'}),
+          headers: {'Content-Type': 'application/json'},
+        );
+      }
+    } catch (e) {
+      print('❌ Error en handshake: $e');
+      return Response.internalServerError(
+        body: json.encode({'error': 'Error procesando handshake: $e'}),
+        headers: {'Content-Type': 'application/json'},
+      );
+    }
+  }
+
   /// Middleware CORS para permitir peticiones desde cualquier origen
   Middleware _corsMiddleware() {
     return (handler) {
@@ -270,50 +318,37 @@ class HttpServerService {
         'Access-Control-Allow-Headers': 'Content-Type',
       };
 
-  /// Obtiene la dirección IP local del dispositivo
-  Future<String> _getLocalIpAddress() async {
+  /// Obtiene todas las direcciones IP locales del dispositivo
+  Future<List<String>> _getAllIpAddresses() async {
     try {
+      final List<String> ipAddresses = [];
+
       // Obtener todas las interfaces de red
       final interfaces = await NetworkInterface.list(
         type: InternetAddressType.IPv4,
         includeLinkLocal: false,
       );
 
-      // Buscar interfaz WiFi o la primera disponible
-      for (final interface in interfaces) {
-        // Priorizar WiFi (wlan0 en Android)
-        if (interface.name.toLowerCase().contains('wlan') ||
-            interface.name.toLowerCase().contains('wifi')) {
-          for (final addr in interface.addresses) {
-            if (!addr.isLoopback) {
-              return addr.address;
-            }
-          }
-        }
-      }
-
-      // Si no hay WiFi, usar la primera interfaz no-loopback
       for (final interface in interfaces) {
         for (final addr in interface.addresses) {
           if (!addr.isLoopback) {
-            return addr.address;
+            ipAddresses.add(addr.address);
           }
         }
       }
 
-      // Fallback a localhost
-      return InternetAddress.anyIPv4.address;
+      return ipAddresses;
     } catch (e) {
-      print('⚠️ Error obteniendo IP local: $e');
-      return InternetAddress.anyIPv4.address;
+      print('⚠️ Error obteniendo IPs locales: $e');
+      return ['0.0.0.0'];
     }
   }
 
   /// Libera recursos
   Future<void> dispose() async {
     await stopServer();
-    await _discoveryService.dispose();
     await _frameController.close();
+    await _esp32ConnectedController.close();
     _lastFrame = null;
   }
 }

@@ -52,90 +52,98 @@ class DriveGuardApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
+    // Crear la instancia del CameraRepository UNA SOLA VEZ
+    final httpServerService = HttpServerService();
+    final CameraRepository cameraRepository = CameraRepositoryImpl(
+      httpServerService: httpServerService,
+    );
+
+    return MultiRepositoryProvider(
       providers: [
-        BlocProvider(
-          create: (context) {
-            // Configurar dependencias de autenticación
-            final remoteDataSource = FirebaseAuthDataSourceImpl();
-            final localDataSource = AuthLocalDataSourceImpl(
-              prefs: sharedPreferences,
-            );
-            final authRepository = AuthRepositoryImpl(
-              remoteDataSource: remoteDataSource,
-              localDataSource: localDataSource,
-            );
-
-            // Crear UseCases de autenticación
-            final loginUseCase = LoginUseCase(authRepository);
-            final registerUseCase = RegisterUseCase(authRepository);
-            final logoutUseCase = LogoutUseCase(authRepository);
-            final forgotPasswordUseCase = ForgotPasswordUseCase(authRepository);
-            final getCurrentUserUseCase = GetCurrentUserUseCase(authRepository);
-
-            // Crear y configurar AuthBloc
-            final authBloc = AuthBloc(
-              loginUseCase: loginUseCase,
-              registerUseCase: registerUseCase,
-              logoutUseCase: logoutUseCase,
-              forgotPasswordUseCase: forgotPasswordUseCase,
-              getCurrentUserUseCase: getCurrentUserUseCase,
-            );
-
-            // Verificar estado inicial de autenticación
-            authBloc.add(AuthCheckRequested());
-
-            return authBloc;
-          },
-        ),
-        BlocProvider(
-          create: (context) {
-            // Configurar dependencias de sesión
-            final sessionRepository = SessionRepositoryImpl();
-
-            // Crear UseCases de sesión
-            final startSessionUseCase = StartSessionUseCase(sessionRepository);
-            final endSessionUseCase = EndSessionUseCase(sessionRepository);
-            final addSessionEventUseCase = AddSessionEventUseCase(sessionRepository);
-            final getUserSessionsUseCase = GetUserSessionsUseCase(sessionRepository);
-            final getSessionEventsUseCase = GetSessionEventsUseCase(sessionRepository);
-            final getActiveSessionUseCase = GetActiveSessionUseCase(sessionRepository);
-
-            // Crear y configurar SessionBloc
-            return SessionBloc(
-              startSessionUseCase: startSessionUseCase,
-              endSessionUseCase: endSessionUseCase,
-              addSessionEventUseCase: addSessionEventUseCase,
-              getUserSessionsUseCase: getUserSessionsUseCase,
-              getSessionEventsUseCase: getSessionEventsUseCase,
-              getActiveSessionUseCase: getActiveSessionUseCase,
-            );
-          },
-        ),
-        BlocProvider(
-          create: (context) {
-            // Configurar servidor HTTP para ESP32-CAM
-            final httpServerService = HttpServerService();
-            final CameraRepository cameraRepository = CameraRepositoryImpl(
-              httpServerService: httpServerService,
-            );
-
-            // Crear y configurar CameraStreamBloc
-            return CameraStreamBloc(
-              cameraRepository: cameraRepository,
-            );
-          },
+        // Exponer CameraRepository como RepositoryProvider para que esté disponible en toda la app
+        RepositoryProvider<CameraRepository>.value(
+          value: cameraRepository,
         ),
       ],
-      child: MaterialApp.router(
-        title: AppConstants.appName,
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-          visualDensity: VisualDensity.adaptivePlatformDensity,
-          fontFamily: 'Roboto',
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider(
+            create: (context) {
+              // Configurar dependencias de autenticación
+              final remoteDataSource = FirebaseAuthDataSourceImpl();
+              final localDataSource = AuthLocalDataSourceImpl(
+                prefs: sharedPreferences,
+              );
+              final authRepository = AuthRepositoryImpl(
+                remoteDataSource: remoteDataSource,
+                localDataSource: localDataSource,
+              );
+
+              // Crear UseCases de autenticación
+              final loginUseCase = LoginUseCase(authRepository);
+              final registerUseCase = RegisterUseCase(authRepository);
+              final logoutUseCase = LogoutUseCase(authRepository);
+              final forgotPasswordUseCase = ForgotPasswordUseCase(authRepository);
+              final getCurrentUserUseCase = GetCurrentUserUseCase(authRepository);
+
+              // Crear y configurar AuthBloc
+              final authBloc = AuthBloc(
+                loginUseCase: loginUseCase,
+                registerUseCase: registerUseCase,
+                logoutUseCase: logoutUseCase,
+                forgotPasswordUseCase: forgotPasswordUseCase,
+                getCurrentUserUseCase: getCurrentUserUseCase,
+              );
+
+              // Verificar estado inicial de autenticación
+              authBloc.add(AuthCheckRequested());
+
+              return authBloc;
+            },
+          ),
+          BlocProvider(
+            create: (context) {
+              // Configurar dependencias de sesión
+              final sessionRepository = SessionRepositoryImpl();
+
+              // Crear UseCases de sesión
+              final startSessionUseCase = StartSessionUseCase(sessionRepository);
+              final endSessionUseCase = EndSessionUseCase(sessionRepository);
+              final addSessionEventUseCase = AddSessionEventUseCase(sessionRepository);
+              final getUserSessionsUseCase = GetUserSessionsUseCase(sessionRepository);
+              final getSessionEventsUseCase = GetSessionEventsUseCase(sessionRepository);
+              final getActiveSessionUseCase = GetActiveSessionUseCase(sessionRepository);
+
+              // Crear y configurar SessionBloc
+              return SessionBloc(
+                startSessionUseCase: startSessionUseCase,
+                endSessionUseCase: endSessionUseCase,
+                addSessionEventUseCase: addSessionEventUseCase,
+                getUserSessionsUseCase: getUserSessionsUseCase,
+                getSessionEventsUseCase: getSessionEventsUseCase,
+                getActiveSessionUseCase: getActiveSessionUseCase,
+              );
+            },
+          ),
+          BlocProvider(
+            create: (context) {
+              // Usar el CameraRepository ya disponible en el contexto
+              return CameraStreamBloc(
+                cameraRepository: context.read<CameraRepository>(),
+              );
+            },
+          ),
+        ],
+        child: MaterialApp.router(
+          title: AppConstants.appName,
+          theme: ThemeData(
+            primarySwatch: Colors.blue,
+            visualDensity: VisualDensity.adaptivePlatformDensity,
+            fontFamily: 'Roboto',
+          ),
+          routerConfig: AppRouter.router,
+          debugShowCheckedModeBanner: false,
         ),
-        routerConfig: AppRouter.router,
-        debugShowCheckedModeBanner: false,
       ),
     );
   }

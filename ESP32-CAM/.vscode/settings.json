@@ -1,0 +1,38 @@
+{
+    // Configuración de VS Code para ESP32-CAM DriveGuard
+
+    // Serial Monitor settings
+    "terminal.integrated.env.windows": {
+        "PLATFORMIO_FORCE_COLOR": "true"
+    },
+
+    // C++ settings para mejor IntelliSense
+    "C_Cpp.intelliSenseEngine": "default",
+    "C_Cpp.errorSquiggles": "enabled",
+
+    // Files to exclude
+    "files.exclude": {
+        "**/.git": true,
+        "**/.pio": false,
+        "**/.vscode": false,
+        "**/received_frames": true
+    },
+
+    // Editor settings
+    "editor.formatOnSave": false,
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+
+    // Terminal settings
+    "terminal.integrated.scrollback": 10000,
+
+    // Python settings (para test_server.py)
+    "python.analysis.typeCheckingMode": "basic",
+
+    // Asociar archivos
+    "files.associations": {
+        "*.h": "c",
+        "*.cpp": "cpp",
+        "platformio.ini": "ini"
+    }
+}
