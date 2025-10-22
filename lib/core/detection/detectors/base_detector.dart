@@ -44,7 +44,7 @@ abstract class BaseDetector {
 
   // BETA: Tolerancia para condiciones perdidas en potential
   int _missedConditionsCount = 0;
-  static const int _maxMissedConditions = 3; // Permitir 3 fallos consecutivos
+  static const int _maxMissedConditions = 10; // Permitir 10 fallos consecutivos (era 3, ahora MÁS tolerante)
 
   BaseDetector({
     required this.detectorName,

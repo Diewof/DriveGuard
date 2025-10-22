@@ -1,59 +1,59 @@
 /// Configuración de umbrales para detección de frenado brusco
-/// AJUSTADO PARA PRUEBAS CON TELÉFONO (valores más sensibles)
+/// AJUSTADO PARA PRUEBAS CON TELÉFONO (valores MÁS sensibles)
 class HarshBrakingConfig {
-  // Umbrales primarios - REDUCIDOS para teléfono
-  static const double accelYThreshold = -2.0; // m/s² (era -4.5)
-  static const double accelZChangeMin = 0.2;  // m/s² (era 0.5)
-  static const double accelZChangeMax = 5.0;  // m/s² (era 2.0, muy aumentado)
+  // Umbrales primarios - MUY REDUCIDOS para mayor sensibilidad
+  static const double accelYThreshold = -1.0; // m/s² (era -2.0, ahora MÁS sensible)
+  static const double accelZChangeMin = 0.2;  // m/s² (mantener)
+  static const double accelZChangeMax = 5.0;  // m/s² (mantener amplio rango)
 
   // Umbrales temporales
   static const Duration minEventDuration = Duration(milliseconds: 200); // BETA: Reducido para calibración
   static const Duration maxEventDuration = Duration(milliseconds: 2000); // Aumentado de 1500
   static const Duration cooldownPeriod = Duration(seconds: 2);
 
-  // Umbrales de confianza - MÁS PERMISIVO
-  static const double gyroStabilityThreshold = 80.0; // °/s (era 15.0, muy aumentado)
-  static const double minConfidence = 0.25; // Reducido de 0.40 para pruebas
+  // Umbrales de confianza - AÚN MÁS PERMISIVO
+  static const double gyroStabilityThreshold = 80.0; // °/s (mantener muy permisivo)
+  static const double minConfidence = 0.15; // Reducido de 0.25 para detectar más eventos
 
   // Umbrales de severidad
-  static const double mediumThreshold = -3.5; // Reducido de -6.0
-  static const double highThreshold = -5.0;   // Reducido de -8.0
+  static const double mediumThreshold = -2.5; // Reducido de -3.5 (más sensible)
+  static const double highThreshold = -4.0;   // Reducido de -5.0 (más sensible)
 }
 
 /// Configuración de umbrales para detección de aceleración agresiva
-/// AJUSTADO PARA PRUEBAS CON TELÉFONO
+/// AJUSTADO PARA PRUEBAS CON TELÉFONO (valores MÁS sensibles)
 class AggressiveAccelConfig {
-  static const double accelYThreshold = 2.0;  // m/s² (era 3.5)
-  static const double accelZChangeMin = -3.0; // m/s² (era -2.5)
-  static const double accelZChangeMax = -0.5; // m/s² (era -0.8)
+  static const double accelYThreshold = 1.0;  // m/s² (era 2.0, ahora MÁS sensible)
+  static const double accelZChangeMin = -3.0; // m/s² (mantener)
+  static const double accelZChangeMax = -0.5; // m/s² (mantener)
 
   static const Duration minEventDuration = Duration(milliseconds: 200); // BETA: Reducido para calibración
   static const Duration maxEventDuration = Duration(seconds: 3);
   static const Duration cooldownPeriod = Duration(milliseconds: 1500);
 
-  static const double gyroStabilityThreshold = 60.0; // °/s (era 20.0)
-  static const double minConfidence = 0.30; // Reducido de 0.45 para pruebas
+  static const double gyroStabilityThreshold = 60.0; // °/s (mantener permisivo)
+  static const double minConfidence = 0.15; // Reducido de 0.30 para detectar más eventos
 
   // Umbrales de severidad
-  static const double mediumThreshold = 3.5; // Reducido de 5.0
-  static const double highThreshold = 5.0;   // Reducido de 7.0
+  static const double mediumThreshold = 2.5; // Reducido de 3.5 (más sensible)
+  static const double highThreshold = 4.0;   // Reducido de 5.0 (más sensible)
 }
 
 /// Configuración de umbrales para detección de giro cerrado
-/// AJUSTADO PARA PRUEBAS CON TELÉFONO
+/// AJUSTADO PARA PRUEBAS CON TELÉFONO (valores MÁS sensibles)
 class SharpTurnConfig {
-  static const double gyroZThreshold = 25.0;      // °/s (era 35.0)
-  static const double accelXThreshold = 2.0;      // m/s² (era 3.0)
+  static const double gyroZThreshold = 15.0;      // °/s (era 25.0, ahora MÁS sensible)
+  static const double accelXThreshold = 1.5;      // m/s² (era 2.0, ahora MÁS sensible)
   static const Duration minTurnDuration = Duration(milliseconds: 200); // BETA: Reducido para calibración
   static const Duration maxTurnDuration = Duration(seconds: 5);
 
-  static const double gyroStdDevThreshold = 15.0;  // Estabilidad (era 8.0)
-  static const double minConfidence = 0.25; // Reducido de 0.50 para pruebas
+  static const double gyroStdDevThreshold = 15.0;  // Estabilidad (mantener permisivo)
+  static const double minConfidence = 0.15; // Reducido de 0.25 para detectar más eventos
   static const Duration cooldownPeriod = Duration(seconds: 2);
 
   // Clasificación de curvas
-  static const double tightTurnGyroThreshold = 40.0; // Reducido de 50.0
-  static const double tightTurnAccelThreshold = 3.5; // Reducido de 4.5
+  static const double tightTurnGyroThreshold = 30.0; // Reducido de 40.0 (más sensible)
+  static const double tightTurnAccelThreshold = 2.5; // Reducido de 3.5 (más sensible)
 }
 
 /// Configuración de umbrales para detección de zigzagueo

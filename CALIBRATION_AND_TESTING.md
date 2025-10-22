@@ -16,11 +16,24 @@ El sistema ahora detecta automáticamente la orientación del teléfono al inici
   - Face Up/Down (plano)
 - **Transformación de coordenadas:** Normaliza todos los datos para que Z siempre apunte hacia arriba
 
-### ✅ 2. Umbrales Ajustados para Condiciones Reales
+### ✅ 2. Umbrales Ajustados para Condiciones Reales (ULTRA SENSIBLE)
 
-**Archivo modificado:** `lib/core/constants/app_constants.dart`
+**Archivos modificados:**
+- `lib/core/constants/app_constants.dart`
+- `lib/core/detection/config/detection_thresholds.dart`
 
-#### Valores Anteriores vs Nuevos:
+#### Valores de Umbrales de Detección v2.0 (MÁXIMA SENSIBILIDAD):
+
+| Evento | Umbral Principal | Confianza Mínima | Notas |
+|--------|------------------|------------------|-------|
+| **Frenado Brusco** | -1.0 m/s² (era -2.0) | 0.15 (era 0.25) | Ultra sensible |
+| **Aceleración Agresiva** | 1.0 m/s² (era 2.0) | 0.15 (era 0.30) | Ultra sensible |
+| **Curva Cerrada** | 15.0°/s (era 25.0) | 0.15 (era 0.25) | Ultra sensible |
+| **Zigzagueo** | 15.0°/s | 0.25 | Mantiene sensibilidad |
+| **Camino Irregular** | 1.5 m/s² | 0.30 | Ya sensible |
+| **Lomo de Toro** | 2.0 m/s² | 0.25 | Ya sensible |
+
+#### Valores en AppConstants (Generales):
 
 | Métrica | Valor Anterior | Valor Nuevo | Razón |
 |---------|----------------|-------------|-------|
@@ -47,7 +60,16 @@ Nueva clase `PeakDetector` que detecta cambios súbitos:
 - **Detector paralelo:** PeakDetector trabaja con datos sin filtrar
 - **Mejor respuesta:** Eventos críticos se detectan más rápido
 
-### ✅ 5. Pantalla de Diagnóstico Mejorada
+### ✅ 5. Mayor Tolerancia a Fallos (NUEVO v2.0)
+
+**Archivo modificado:** `lib/core/detection/detectors/base_detector.dart`
+
+- **Fallos consecutivos permitidos:** De 3 a **10** (333% más tolerante)
+- **Beneficio:** Los detectores permanecen en estado POTENTIAL más tiempo
+- **Resultado:** No se pierden eventos por fluctuaciones momentáneas de los sensores
+- **Impacto:** Reduce significativamente los falsos negativos
+
+### ✅ 6. Pantalla de Diagnóstico Mejorada
 
 **Archivo modificado:** `lib/presentation/pages/sensor_diagnostics_page.dart`
 
@@ -351,6 +373,41 @@ Para reportar problemas o sugerir mejoras:
 
 ---
 
+## 🆕 Changelog v2.0 (22-Oct-2025)
+
+### Cambios Críticos para Máxima Sensibilidad
+
+1. **Umbrales Ultra Sensibles:**
+   - Frenado brusco: -2.0 → **-1.0 m/s²** (50% reducción)
+   - Aceleración agresiva: 2.0 → **1.0 m/s²** (50% reducción)
+   - Curva cerrada: 25.0 → **15.0°/s** (40% reducción)
+
+2. **Confianza Mínima Reducida:**
+   - Todos los detectores principales: 0.25-0.30 → **0.15** (40-50% reducción)
+   - Permite que eventos con menor certeza sean reportados
+   - Útil durante fase de calibración beta
+
+3. **Tolerancia a Fallos Aumentada:**
+   - Fallos consecutivos: 3 → **10** (333% aumento)
+   - Los detectores "perdonan" fluctuaciones temporales
+   - Eventos no se cancelan prematuramente
+
+### Impacto Esperado
+
+✅ **Más detecciones:** Eventos sutiles ahora serán capturados
+✅ **Menos falsos negativos:** Maniobras moderadas generarán alertas
+⚠️ **Posibles falsos positivos:** Podría alertar en caminos irregulares o tráfico denso
+🔧 **Requiere validación:** Probar en condiciones reales y ajustar si es necesario
+
+### Próximos Pasos Recomendados
+
+1. **Pruebas en campo:** Validar sensibilidad con usuarios beta
+2. **Recolección de datos:** Registrar eventos detectados vs. esperados
+3. **Ajuste fino:** Basado en feedback, aumentar/reducir umbrales
+4. **Perfiles de usuario:** Considerar modo "Estricto" vs "Relajado"
+
+---
+
 **Última actualización:** 2025-10-22
-**Versión del sistema:** 1.1.0
+**Versión del sistema:** 2.0.0 (Ultra Sensible)
 **Autor:** DriveGuard Development Team
