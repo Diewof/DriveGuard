@@ -5,6 +5,14 @@ import '../constants/app_constants.dart';
 
 enum SimulationMode { normal, reckless, crash, distracted }
 
+/// Simulador de sensores para testing y desarrollo
+///
+/// DEPRECATED: Este simulador solo debe usarse para pruebas y desarrollo.
+/// En producción, usa DeviceSensorService para obtener datos reales de sensores.
+///
+/// Para cambiar entre simulador y sensores reales, configura
+/// AppConstants.useRealSensors en lib/core/constants/app_constants.dart
+@Deprecated('Use DeviceSensorService for real sensor data. This simulator is only for testing.')
 class SensorSimulator {
   Timer? _timer;
   final _sensorController = StreamController<SensorData>.broadcast();

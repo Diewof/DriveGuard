@@ -7,6 +7,7 @@ import '../../presentation/pages/settings/notification_settings_page.dart';
 import '../../presentation/pages/profile/profile_page.dart';
 import '../../presentation/pages/history/history_page.dart';
 import '../../presentation/pages/history/session_events_page.dart';
+import '../../presentation/pages/sensor_diagnostics_page.dart';
 import '../../domain/entities/driving_session.dart';
 
 class AppRouter {
@@ -50,6 +51,11 @@ class AppRouter {
           final session = state.extra as DrivingSession;
           return SessionEventsPage(session: session);
         },
+      ),
+      GoRoute(
+        path: '/sensor-diagnostics',
+        name: 'sensor-diagnostics',
+        builder: (context, state) => const SensorDiagnosticsPage(),
       ),
     ],
   );

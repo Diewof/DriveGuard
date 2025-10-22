@@ -32,6 +32,9 @@ class AppConstants {
   static const String loginRoute = '/login';
   static const String dashboardRoute = '/dashboard';
   static const String notificationSettingsRoute = '/notification-settings';
+
+  // Configuración de sensores
+  static const bool useRealSensors = true; // false para desarrollo/testing con simulador
 }
 
 class AssetConstants {

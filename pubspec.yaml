@@ -36,6 +36,9 @@ dependencies:
   # Functional programming
   dartz: ^0.10.1
 
+  # Sensores del dispositivo
+  sensors_plus: ^6.0.1
+
   # HTTP Server para ESP32-CAM
   shelf: ^1.4.0
   shelf_router: ^1.1.0

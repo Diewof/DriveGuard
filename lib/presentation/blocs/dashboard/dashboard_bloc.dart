@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../../domain/entities/sensor_data.dart';
-import '../../../core/mocks/sensor_simulator.dart';
+import '../../../core/services/sensor_service_factory.dart';
 import '../../../core/services/notification_service.dart';
 import '../session/session_bloc.dart';
 import '../session/session_event.dart' as session_events;
@@ -16,7 +16,7 @@ part 'dashboard_event.dart';
 part 'dashboard_state.dart';
 
 class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
-  final SensorSimulator _sensorSimulator = SensorSimulator();
+  final ISensorService _sensorService = SensorServiceFactory.create();
   final NotificationService _notificationService;
   final SessionBloc _sessionBloc;
   final AuthBloc _authBloc;
@@ -65,7 +65,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     // Iniciar sesión automáticamente
     await _startSession();
 
-    _sensorSimulator.startSimulation(SimulationMode.normal);
+    _sensorService.start();
     _listenToSensorData();
     _startSessionTimer();
     _startAlertTimer();
@@ -81,7 +81,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     // Finalizar sesión automáticamente
     await _endSession();
 
-    _sensorSimulator.stopSimulation();
+    _sensorService.stop();
     _sessionTimer?.cancel();
     _alertTimer?.cancel();
     _sensorSubscription?.cancel();
@@ -153,7 +153,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
 
   void _listenToSensorData() {
     _sensorSubscription?.cancel();
-    _sensorSubscription = _sensorSimulator.stream
+    _sensorSubscription = _sensorService.stream
         .where((data) => state.isMonitoring)
         .listen((sensorData) {
       add(DashboardSensorDataReceived(sensorData));
@@ -466,7 +466,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
 
   @override
   Future<void> close() {
-    _sensorSimulator.dispose();
+    _sensorService.dispose();
     _sessionTimer?.cancel();
     _alertTimer?.cancel();
     _sensorSubscription?.cancel();
