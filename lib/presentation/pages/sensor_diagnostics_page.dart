@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/services/device_sensor_service.dart';
-import '../../domain/entities/sensor_data.dart';
 import '../../core/constants/app_constants.dart';
+import '../../domain/entities/sensor_data.dart';
 
 /// Pantalla de diagnóstico de sensores
-/// Muestra valores en tiempo real y permite validar el funcionamiento
+/// Muestra valores en tiempo real, calibración y permite validar el funcionamiento
 class SensorDiagnosticsPage extends StatefulWidget {
   const SensorDiagnosticsPage({super.key});
 
@@ -16,7 +16,9 @@ class SensorDiagnosticsPage extends StatefulWidget {
 class _SensorDiagnosticsPageState extends State<SensorDiagnosticsPage> {
   final DeviceSensorService _sensorService = DeviceSensorService();
   StreamSubscription<SensorData>? _subscription;
+  StreamSubscription<SensorData>? _rawSubscription;
   SensorData? _currentData;
+  SensorData? _rawData;
   bool _isMonitoring = false;
 
   // Histórico de alertas
@@ -36,10 +38,19 @@ class _SensorDiagnosticsPageState extends State<SensorDiagnosticsPage> {
     });
 
     _sensorService.startMonitoring();
+
+    // Escuchar datos filtrados
     _subscription = _sensorService.stream.listen((data) {
       setState(() {
         _currentData = data;
         _checkThresholds(data);
+      });
+    });
+
+    // Escuchar datos raw para comparación
+    _rawSubscription = _sensorService.rawStream.listen((data) {
+      setState(() {
+        _rawData = data;
       });
     });
   }
@@ -52,14 +63,22 @@ class _SensorDiagnosticsPageState extends State<SensorDiagnosticsPage> {
     });
 
     _subscription?.cancel();
+    _rawSubscription?.cancel();
     _sensorService.stopMonitoring();
   }
 
   void _checkThresholds(SensorData data) {
-    if (data.isRecklessDriving) {
+    // Detectar conducción temeraria con nuevos umbrales
+    final totalAccel = (data.accelerationX.abs() + data.accelerationY.abs()) / 2;
+    final totalGyro = (data.gyroscopeX.abs() + data.gyroscopeY.abs() + data.gyroscopeZ.abs()) / 3;
+
+    if (totalAccel > AppConstants.recklessAccelThreshold || totalGyro > AppConstants.recklessGyroThreshold) {
       _addAlert('⚠️ CONDUCCIÓN TEMERARIA detectada');
     }
-    if (data.isCrashDetected) {
+
+    // Detectar impacto
+    final totalImpact = (data.accelerationX.abs() + data.accelerationY.abs() + data.accelerationZ.abs()) / 3;
+    if (totalImpact > AppConstants.crashAccelThreshold) {
       _addAlert('🚨 IMPACTO DETECTADO');
     }
   }
@@ -96,9 +115,17 @@ class _SensorDiagnosticsPageState extends State<SensorDiagnosticsPage> {
             _buildStatusCard(),
             const SizedBox(height: 16),
 
-            // Acelerómetro
+            // Información de calibración
+            _buildCalibrationCard(),
+            const SizedBox(height: 16),
+
+            // Comparación Raw vs Filtrado
+            _buildComparisonCard(),
+            const SizedBox(height: 16),
+
+            // Acelerómetro (Filtrado)
             _buildSensorCard(
-              title: 'Acelerómetro',
+              title: 'Acelerómetro (Filtrado)',
               icon: Icons.speed,
               color: Colors.blue,
               values: _currentData != null
@@ -111,9 +138,9 @@ class _SensorDiagnosticsPageState extends State<SensorDiagnosticsPage> {
             ),
             const SizedBox(height: 16),
 
-            // Giroscopio
+            // Giroscopio (Filtrado)
             _buildSensorCard(
-              title: 'Giroscopio',
+              title: 'Giroscopio (Filtrado)',
               icon: Icons.rotate_right,
               color: Colors.green,
               values: _currentData != null
@@ -392,6 +419,216 @@ class _SensorDiagnosticsPageState extends State<SensorDiagnosticsPage> {
                   )),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildCalibrationCard() {
+    final calibrationInfo = _sensorService.calibrator.getCalibrationInfo();
+    final isCalibrated = calibrationInfo['isCalibrated'] as bool;
+    final isCalibrating = _sensorService.isCalibrating;
+
+    return Card(
+      elevation: 4,
+      color: isCalibrated ? Colors.green.shade50 : Colors.amber.shade50,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  isCalibrated ? Icons.check_circle : Icons.refresh,
+                  color: isCalibrated ? Colors.green : Colors.amber,
+                  size: 28,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Calibración de Orientación',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: isCalibrated ? Colors.green : Colors.amber,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (isCalibrating)
+              const Column(
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 8),
+                  Text('Calibrando... Mantenga el dispositivo estable'),
+                ],
+              )
+            else if (isCalibrated) ...[
+              _buildInfoRow('Estado', 'Calibrado ✅', Colors.green),
+              _buildInfoRow('Orientación', calibrationInfo['orientation'] as String, Colors.black87),
+              const SizedBox(height: 8),
+              const Text(
+                'Línea Base de Gravedad:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              if (calibrationInfo['gravityBaseline'] != null) ...[
+                _buildAxisRow('X', (calibrationInfo['gravityBaseline'] as Map)['x'] as double),
+                _buildAxisRow('Y', (calibrationInfo['gravityBaseline'] as Map)['y'] as double),
+                _buildAxisRow('Z', (calibrationInfo['gravityBaseline'] as Map)['z'] as double),
+              ],
+            ] else
+              const Text(
+                'Esperando calibración...',
+                style: TextStyle(color: Colors.grey),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildComparisonCard() {
+    return Card(
+      elevation: 4,
+      color: Colors.purple.shade50,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.compare_arrows, color: Colors.purple, size: 28),
+                SizedBox(width: 8),
+                Text(
+                  'Comparación: Raw vs Filtrado',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.purple,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (_rawData != null && _currentData != null) ...[
+              _buildComparisonRow(
+                'Accel X',
+                _rawData!.accelerationX,
+                _currentData!.accelerationX,
+              ),
+              _buildComparisonRow(
+                'Accel Y',
+                _rawData!.accelerationY,
+                _currentData!.accelerationY,
+              ),
+              _buildComparisonRow(
+                'Accel Z',
+                _rawData!.accelerationZ,
+                _currentData!.accelerationZ,
+              ),
+              const Divider(),
+              _buildComparisonRow(
+                'Gyro X',
+                _rawData!.gyroscopeX,
+                _currentData!.gyroscopeX,
+              ),
+              _buildComparisonRow(
+                'Gyro Y',
+                _rawData!.gyroscopeY,
+                _currentData!.gyroscopeY,
+              ),
+              _buildComparisonRow(
+                'Gyro Z',
+                _rawData!.gyroscopeZ,
+                _currentData!.gyroscopeZ,
+              ),
+            ] else
+              const Center(
+                child: Text(
+                  'Sin datos disponibles',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, Color valueColor) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            '$label:',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          Text(
+            value,
+            style: TextStyle(color: valueColor, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAxisRow(String axis, double value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text('  $axis:'),
+          Text(
+            '${value.toStringAsFixed(2)} m/s²',
+            style: const TextStyle(fontFamily: 'monospace'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildComparisonRow(String label, double rawValue, double filteredValue) {
+    final diff = (rawValue - filteredValue).abs();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Raw: ${rawValue.toStringAsFixed(3)}',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  'Filt: ${filteredValue.toStringAsFixed(3)}',
+                  style: const TextStyle(fontSize: 12, color: Colors.blue),
+                ),
+              ),
+              Text(
+                'Δ ${diff.toStringAsFixed(3)}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: diff > 0.5 ? Colors.red : Colors.green,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

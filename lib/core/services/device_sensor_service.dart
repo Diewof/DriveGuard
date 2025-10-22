@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:collection';
 import 'package:sensors_plus/sensors_plus.dart';
 import '../../domain/entities/sensor_data.dart';
+import '../constants/app_constants.dart';
+import 'orientation_calibrator.dart';
 
 /// Servicio que obtiene datos reales de los sensores del dispositivo Android
 /// Combina acelerómetro y giroscopio en un solo stream sincronizado
@@ -12,26 +14,43 @@ class DeviceSensorService {
 
   // Controller para emitir datos combinados
   final _sensorController = StreamController<SensorData>.broadcast();
+  final _rawDataController = StreamController<SensorData>.broadcast();
 
   // Últimas lecturas de cada sensor
   AccelerometerEvent? _lastAccel;
   GyroscopeEvent? _lastGyro;
 
-  // Filtro de ruido
+  // Calibrador de orientación
+  final _calibrator = OrientationCalibrator(
+    requiredSamples: AppConstants.calibrationSamples,
+    calibrationDuration: Duration(seconds: AppConstants.calibrationDurationSeconds),
+  );
+
+  // Filtro de ruido mejorado
   final _filter = SensorDataFilter();
+
+  // Detector de picos paralelo (sin filtro)
+  final _peakDetector = PeakDetector();
 
   // Estado
   bool _isRunning = false;
 
   // Getters públicos
   Stream<SensorData> get stream => _sensorController.stream;
+  Stream<SensorData> get rawStream => _rawDataController.stream;
   bool get isRunning => _isRunning;
+  bool get isCalibrating => _calibrator.isCalibrating;
+  bool get isCalibrated => _calibrator.isCalibrated;
+  OrientationCalibrator get calibrator => _calibrator;
 
   /// Inicia el monitoreo de sensores reales
   void startMonitoring() {
     if (_isRunning) return;
 
     _isRunning = true;
+
+    // Iniciar calibración automática
+    _calibrator.startCalibration();
 
     // Suscribirse al acelerómetro
     _accelSubscription = accelerometerEventStream().listen(
@@ -85,8 +104,29 @@ class DeviceSensorService {
       vibrationLevel: _calculateVibration(_lastAccel!),
     );
 
-    // Aplicar filtro de ruido
-    final filteredData = _filter.filter(rawData);
+    // Emitir dato crudo para diagnóstico
+    _rawDataController.add(rawData);
+
+    // Si estamos calibrando, alimentar el calibrador
+    if (_calibrator.isCalibrating) {
+      final calibrationComplete = _calibrator.addCalibrationSample(rawData);
+      if (calibrationComplete) {
+        // ignore: avoid_print
+        print('✅ [SENSOR SERVICE] Calibración completada');
+      }
+      return; // No emitir datos durante calibración
+    }
+
+    // Aplicar calibración de orientación si está disponible
+    final calibratedData = _calibrator.isCalibrated
+        ? _calibrator.transformSensorData(rawData)
+        : rawData;
+
+    // Aplicar filtro de ruido con ventana reducida
+    final filteredData = _filter.filter(calibratedData);
+
+    // Detectar picos sin filtro (para eventos críticos)
+    _peakDetector.analyze(calibratedData);
 
     // Emitir dato filtrado
     _sensorController.add(filteredData);
@@ -107,12 +147,13 @@ class DeviceSensorService {
   void dispose() {
     stopMonitoring();
     _sensorController.close();
+    _rawDataController.close();
   }
 }
 
-/// Filtro de media móvil para reducir ruido de sensores
+/// Filtro de media móvil para reducir ruido de sensores (ventana reducida)
 class SensorDataFilter {
-  final int _windowSize = 5;
+  final int _windowSize = AppConstants.sensorFilterWindowSize;
   final Queue<SensorData> _buffer = Queue();
 
   /// Aplica filtro de media móvil sobre los últimos N valores
@@ -161,7 +202,88 @@ class SensorDataFilter {
       gyroscopeY: sumGyroY / count,
       gyroscopeZ: sumGyroZ / count,
       vibrationLevel: sumVibration / count,
-      impactDetected: latest.isCrashDetected, // Usar detección del último valor
+      impactDetected: latest.impactDetected, // Usar detección del último valor
     );
+  }
+}
+
+/// Detector de picos que trabaja en paralelo sin filtro
+/// para capturar eventos críticos que podrían perderse con el filtrado
+class PeakDetector {
+  SensorData? _lastData;
+  final List<SensorData> _recentPeaks = [];
+  DateTime? _lastPeakTime;
+
+  /// Analiza datos sin filtro buscando cambios bruscos
+  void analyze(SensorData current) {
+    if (_lastData == null) {
+      _lastData = current;
+      return;
+    }
+
+    // Calcular deltas (cambios entre lecturas)
+    final deltaAccelX = (current.accelerationX - _lastData!.accelerationX).abs();
+    final deltaAccelY = (current.accelerationY - _lastData!.accelerationY).abs();
+    final deltaAccelZ = (current.accelerationZ - _lastData!.accelerationZ).abs();
+
+    final deltaGyroX = (current.gyroscopeX - _lastData!.gyroscopeX).abs();
+    final deltaGyroY = (current.gyroscopeY - _lastData!.gyroscopeY).abs();
+    final deltaGyroZ = (current.gyroscopeZ - _lastData!.gyroscopeZ).abs();
+
+    // Detectar picos significativos
+    final hasAccelPeak = deltaAccelX > AppConstants.deltaAccelThreshold ||
+                        deltaAccelY > AppConstants.deltaAccelThreshold ||
+                        deltaAccelZ > AppConstants.deltaAccelThreshold;
+
+    final hasGyroPeak = deltaGyroX > AppConstants.deltaGyroThreshold ||
+                       deltaGyroY > AppConstants.deltaGyroThreshold ||
+                       deltaGyroZ > AppConstants.deltaGyroThreshold;
+
+    if (hasAccelPeak || hasGyroPeak) {
+      final now = DateTime.now();
+
+      // Evitar múltiples detecciones del mismo pico
+      if (_lastPeakTime == null ||
+          now.difference(_lastPeakTime!).inMilliseconds > 500) {
+
+        _recentPeaks.add(current);
+        _lastPeakTime = now;
+
+        // Mantener solo los últimos 10 picos
+        if (_recentPeaks.length > 10) {
+          _recentPeaks.removeAt(0);
+        }
+
+        // ignore: avoid_print
+        print('⚡ [PEAK DETECTOR] Pico detectado - '
+            'ΔAccel: (${deltaAccelX.toStringAsFixed(2)}, '
+            '${deltaAccelY.toStringAsFixed(2)}, '
+            '${deltaAccelZ.toStringAsFixed(2)}) | '
+            'ΔGyro: (${deltaGyroX.toStringAsFixed(1)}°, '
+            '${deltaGyroY.toStringAsFixed(1)}°, '
+            '${deltaGyroZ.toStringAsFixed(1)}°)');
+      }
+    }
+
+    _lastData = current;
+  }
+
+  /// Obtiene información de picos recientes para diagnóstico
+  List<Map<String, dynamic>> getRecentPeaks() {
+    return _recentPeaks.map((peak) => {
+      'timestamp': peak.timestamp,
+      'accelX': peak.accelerationX,
+      'accelY': peak.accelerationY,
+      'accelZ': peak.accelerationZ,
+      'gyroX': peak.gyroscopeX,
+      'gyroY': peak.gyroscopeY,
+      'gyroZ': peak.gyroscopeZ,
+    }).toList();
+  }
+
+  void reset() {
+    _lastData = null;
+    _recentPeaks.clear();
+    _lastPeakTime = null;
   }
 }
