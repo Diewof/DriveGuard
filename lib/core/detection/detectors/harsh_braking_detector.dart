@@ -22,23 +22,18 @@ class HarshBrakingDetector extends BaseDetector {
 
   @override
   bool checkConditions(SensorReading current, SensorStatistics stats) {
-    final gyroTotal = current.gyroX.abs() + current.gyroY.abs() + current.gyroZ.abs();
-    final deltaZ = baseline != null ? current.accelZ - baseline!.accelZ : 0.0;
-
-    // Condición primaria: desaceleración fuerte en Y
+    // Condición primaria: desaceleración fuerte en Y (SIMPLIFICADO para calibración)
     if (current.accelY > HarshBrakingConfig.accelYThreshold) {
-      return false; // Y debe ser negativo
+      return false; // Y debe ser negativo para frenado
     }
 
-    // Condición secundaria: cambio en Z (nariz baja)
-    if (baseline != null) {
-      if (deltaZ < HarshBrakingConfig.accelZChangeMin ||
-          deltaZ > HarshBrakingConfig.accelZChangeMax) {
-        return false;
-      }
-    }
+    // SIMPLIFICADO: Solo verificar la condición principal
+    // Eliminamos verificaciones de deltaZ que eran demasiado restrictivas
+    // para teléfonos en soportes
 
-    // Verificar estabilidad del giroscopio (sin giros bruscos)
+    // Verificar estabilidad del giroscopio solo si es muy alto
+    // (permitir giros moderados durante frenado)
+    final gyroTotal = current.gyroX.abs() + current.gyroY.abs() + current.gyroZ.abs();
     if (gyroTotal > HarshBrakingConfig.gyroStabilityThreshold) {
       return false;
     }
@@ -52,11 +47,14 @@ class HarshBrakingDetector extends BaseDetector {
 
     double confidence = 0.0;
 
-    // Factor 1: Magnitud del pico de desaceleración (40%)
+    // Factor 1: Magnitud del pico de desaceleración (50% - aumentado)
+    // AJUSTADO: Usar umbral actual (-1.0) en lugar de hardcoded 4.5
     final minAccelY = eventReadings.map((r) => r.accelY).reduce(min);
     final peakMagnitude = minAccelY.abs();
-    final peakScore = ((peakMagnitude - 4.5) / 10.0).clamp(0.0, 1.0);
-    confidence += peakScore * 0.4;
+    final threshold = HarshBrakingConfig.accelYThreshold.abs();
+    // Si supera el umbral, dar confianza. Escalar hasta 3x el umbral
+    final peakScore = ((peakMagnitude - threshold) / (threshold * 2)).clamp(0.0, 1.0);
+    confidence += peakScore * 0.5;
 
     // Factor 2: Estabilidad del giroscopio (30%)
     final avgGyroMagnitude = eventReadings
@@ -66,14 +64,14 @@ class HarshBrakingDetector extends BaseDetector {
         .clamp(0.0, 1.0);
     confidence += stabilityScore * 0.3;
 
-    // Factor 3: Duración dentro del rango esperado (30%)
+    // Factor 3: Duración dentro del rango esperado (20% - reducido)
     if (eventReadings.length >= 2) {
       final duration = eventReadings.last.timestamp
           .difference(eventReadings.first.timestamp);
       final durationMs = duration.inMilliseconds;
-      final idealDuration = 900.0; // 900ms es ideal
+      const idealDuration = 600.0; // 600ms es más realista para eventos cortos
       final durationScore = 1.0 - ((durationMs - idealDuration).abs() / 1000.0).clamp(0.0, 1.0);
-      confidence += durationScore * 0.3;
+      confidence += durationScore * 0.2;
     }
 
     return confidence.clamp(0.0, 1.0);

@@ -52,7 +52,8 @@ class SpeedBumpDetector extends BaseDetector {
   }
 
   bool _checkFirstPeak(SensorReading current) {
-    // Buscar pico positivo en Z
+    // SIMPLIFICADO: Buscar pico positivo en Z con umbral más bajo
+    // Usar el umbral configurado (ahora 2.0 m/s²)
     if (current.accelZ > SpeedBumpConfig.firstPeakThreshold) {
       _bumpState = SpeedBumpState.waitingValley;
       _firstPeakTime = current.timestamp;
@@ -76,8 +77,9 @@ class SpeedBumpDetector extends BaseDetector {
       return false;
     }
 
-    // Buscar descenso a valores cercanos a baseline
-    if (current.accelZ.abs() <= 1.0 && timeSinceFirstPeak > const Duration(milliseconds: 200)) {
+    // SIMPLIFICADO: Buscar descenso más permisivo
+    // Permitir valores hasta 2.0 m/s² como "valle"
+    if (current.accelZ.abs() <= 2.0 && timeSinceFirstPeak > const Duration(milliseconds: 150)) {
       _bumpState = SpeedBumpState.waitingSecondPeak;
       return false;
     }

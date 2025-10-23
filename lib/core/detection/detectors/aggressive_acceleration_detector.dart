@@ -22,32 +22,18 @@ class AggressiveAccelerationDetector extends BaseDetector {
 
   @override
   bool checkConditions(SensorReading current, SensorStatistics stats) {
-    // Condición primaria: aceleración fuerte en Y (positiva)
+    // Condición primaria: aceleración fuerte en Y (positiva) - SIMPLIFICADO
     if (current.accelY < AggressiveAccelConfig.accelYThreshold) {
       return false;
     }
 
-    // Verificar que se mantiene por encima de 2.5 m/s² (sostenida)
-    if (currentState == DetectionState.confirmed && current.accelY < 2.5) {
-      return false;
-    }
+    // SIMPLIFICADO: Eliminamos las condiciones secundarias restrictivas
+    // - No verificamos deltaZ (puede no cambiar mucho con teléfono en soporte)
+    // - No requerimos mantener 2.5 m/s² (umbral es 1.0, no tiene sentido pedir 2.5)
+    // - Permitimos aceleración lateral moderada (puede ocurrir en aceleración real)
 
-    // Condición secundaria: descenso en Z
-    if (baseline != null) {
-      final deltaZ = current.accelZ - baseline!.accelZ;
-      if (deltaZ > AggressiveAccelConfig.accelZChangeMax ||
-          deltaZ < AggressiveAccelConfig.accelZChangeMin) {
-        return false;
-      }
-    }
-
-    // Rechazar si hay giro lateral (posible curva, no aceleración recta)
+    // Solo rechazar si hay giro muy fuerte (es una curva, no aceleración recta)
     if (current.gyroZ.abs() > AggressiveAccelConfig.gyroStabilityThreshold) {
-      return false;
-    }
-
-    // Rechazar si hay cambio lateral brusco
-    if (current.accelX.abs() > 2.0) {
       return false;
     }
 
@@ -60,11 +46,14 @@ class AggressiveAccelerationDetector extends BaseDetector {
 
     double confidence = 0.0;
 
-    // Factor 1: Magnitud sostenida de aceleración (40%)
+    // Factor 1: Magnitud sostenida de aceleración (50% - aumentado)
+    // AJUSTADO: Usar umbral actual (1.0) en lugar de hardcoded 3.5
     final avgAccelY = eventReadings.map((r) => r.accelY).reduce((a, b) => a + b) /
                       eventReadings.length;
-    final peakScore = ((avgAccelY - 3.5) / 5.0).clamp(0.0, 1.0);
-    confidence += peakScore * 0.4;
+    final threshold = AggressiveAccelConfig.accelYThreshold;
+    // Si supera el umbral, dar confianza. Escalar hasta 3x el umbral
+    final peakScore = ((avgAccelY - threshold) / (threshold * 2)).clamp(0.0, 1.0);
+    confidence += peakScore * 0.5;
 
     // Factor 2: Estabilidad lateral (30%)
     final avgGyroZ = eventReadings.map((r) => r.gyroZ.abs()).reduce((a, b) => a + b) /
@@ -73,14 +62,14 @@ class AggressiveAccelerationDetector extends BaseDetector {
         .clamp(0.0, 1.0);
     confidence += stabilityScore * 0.3;
 
-    // Factor 3: Duración sostenida (30%)
+    // Factor 3: Duración sostenida (20% - reducido)
     if (eventReadings.length >= 2) {
       final duration = eventReadings.last.timestamp
           .difference(eventReadings.first.timestamp);
       final durationSec = duration.inMilliseconds / 1000.0;
-      const idealDuration = 2.0; // 2 segundos es ideal
-      final durationScore = 1.0 - ((durationSec - idealDuration).abs() / 2.0).clamp(0.0, 1.0);
-      confidence += durationScore * 0.3;
+      const idealDuration = 1.0; // 1 segundo es más realista para eventos cortos
+      final durationScore = 1.0 - ((durationSec - idealDuration).abs() / 1.5).clamp(0.0, 1.0);
+      confidence += durationScore * 0.2;
     }
 
     return confidence.clamp(0.0, 1.0);

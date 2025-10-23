@@ -60,28 +60,11 @@ class RoughRoadDetector extends BaseDetector {
     _detectedPeaks.removeWhere((peak) =>
         current.timestamp.difference(peak.timestamp) > RoughRoadConfig.detectionWindow);
 
-    // Verificar si tenemos suficientes picos
+    // SIMPLIFICADO: Solo verificar si tenemos suficientes picos
+    // Eliminamos las verificaciones muy restrictivas de CV y gyroX
     if (_detectedPeaks.length >= RoughRoadConfig.minPeaksInWindow) {
-      // Calcular irregularidad (coeficiente de variación)
-      final magnitudes = _detectedPeaks.map((p) => p.magnitude.abs()).toList();
-      final mean = magnitudes.reduce((a, b) => a + b) / magnitudes.length;
-      final variance = magnitudes.map((m) => pow(m - mean, 2)).reduce((a, b) => a + b) /
-                       magnitudes.length;
-      final stdDev = sqrt(variance);
-      final cv = mean > 0 ? stdDev / mean : 0.0;
-
-      // Debe ser irregular (CV > 30%)
-      if (cv > RoughRoadConfig.irregularityThreshold) {
-        // Verificar oscilaciones en gyroPitch (gyroX)
-        final recentGyroX = recentReadings
-            .takeLast(10)
-            .map((r) => r.gyroX.abs())
-            .where((gx) => gx > RoughRoadConfig.gyroPitchThreshold);
-
-        if (recentGyroX.isNotEmpty) {
-          return true;
-        }
-      }
+      // Ya detectamos múltiples picos verticales → es camino irregular
+      return true;
     }
 
     return false;
