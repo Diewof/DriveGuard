@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/services/notification_service.dart';
+import '../../../core/utils/app_colors.dart';
+import '../../../core/utils/app_spacing.dart';
+import '../../../core/utils/app_typography.dart';
+import '../../../core/widgets/common_card.dart';
 
 class NotificationSettingsPage extends StatefulWidget {
   const NotificationSettingsPage({super.key});
@@ -70,24 +74,31 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Configuración de Notificaciones',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
+          style: AppTypography.h3.copyWith(
             color: Colors.white,
           ),
         ),
-        backgroundColor: Colors.blue[900],
-        elevation: 2,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppColors.primaryDark, AppColors.primary],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        elevation: AppSpacing.elevation2,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_outlined, color: Colors.white),
           onPressed: () => context.pop(),
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -120,7 +131,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
               ],
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
 
             // Configuración de Audio
             if (_audioEnabled) ...[
@@ -152,7 +163,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.md),
             ],
 
             // Configuración Visual
@@ -174,7 +185,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.md),
             ],
 
             // Configuración de Conducción
@@ -213,33 +224,32 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
               ],
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
 
             // Información adicional
             _buildInfoCard(),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: AppSpacing.xl),
 
             // Botón de guardar
             SizedBox(
               width: double.infinity,
-              height: 50,
+              height: 56,
               child: ElevatedButton.icon(
                 onPressed: _saveSettings,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[700],
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  elevation: 4,
+                  elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
                   ),
                 ),
-                icon: const Icon(Icons.save),
-                label: const Text(
+                icon: const Icon(Icons.save_outlined),
+                label: Text(
                   'Guardar Configuración',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                  style: AppTypography.button.copyWith(
+                    color: Colors.white,
                   ),
                 ),
               ),
@@ -255,37 +265,30 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     required IconData icon,
     required List<Widget> children,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    return CommonCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(icon, color: Colors.blue[700], size: 24),
-              const SizedBox(width: 12),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue[700],
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, color: AppColors.primary, size: 24),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  title,
+                  style: AppTypography.h4.copyWith(
+                    color: AppColors.primary,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.md),
           ...children,
         ],
       ),
@@ -299,29 +302,27 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     required Function(bool) onChanged,
     required IconData icon,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
         children: [
-          Icon(icon, color: Colors.grey[600], size: 20),
-          const SizedBox(width: 12),
+          Icon(icon, color: AppColors.textSecondary, size: 20),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                  style: AppTypography.body.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 Text(
                   subtitle,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[600],
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ],
@@ -330,7 +331,12 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeTrackColor: Colors.blue[700],
+            activeTrackColor: AppColors.primary.withValues(alpha: 0.5),
+            thumbColor: WidgetStateProperty.resolveWith((states) {
+              return states.contains(WidgetState.selected)
+                  ? AppColors.primary
+                  : AppColors.textDisabled;
+            }),
           ),
         ],
       ),
@@ -348,32 +354,30 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     required IconData icon,
     required String Function(double) valueFormatter,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: Colors.grey[600], size: 20),
-              const SizedBox(width: 12),
+              Icon(icon, color: AppColors.textSecondary, size: 20),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                      style: AppTypography.body.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                     Text(
                       subtitle,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[600],
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -381,19 +385,18 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
               ),
               Text(
                 valueFormatter(value),
-                style: TextStyle(
-                  fontSize: 14,
+                style: AppTypography.body.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue[700],
+                  color: AppColors.primary,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
               trackHeight: 4,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
               overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
             ),
             child: Slider(
@@ -402,8 +405,8 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
               max: max,
               divisions: divisions,
               onChanged: onChanged,
-              activeColor: Colors.blue[700],
-              inactiveColor: Colors.grey[300],
+              activeColor: AppColors.primary,
+              inactiveColor: AppColors.border,
             ),
           ),
         ],
@@ -419,51 +422,56 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     required Function(String?) onChanged,
     required IconData icon,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
         children: [
-          Icon(icon, color: Colors.grey[600], size: 20),
-          const SizedBox(width: 12),
+          Icon(icon, color: AppColors.textSecondary, size: 20),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                  style: AppTypography.body.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 Text(
                   subtitle,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[600],
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ],
             ),
           ),
-          DropdownButton<String>(
-            value: value,
-            onChanged: onChanged,
-            items: items.map((item) {
-              return DropdownMenuItem<String>(
-                value: item['value'],
-                child: Text(item['label']!),
-              );
-            }).toList(),
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.blue[700],
-              fontWeight: FontWeight.w600,
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.sm,
+              vertical: AppSpacing.xs,
             ),
-            underline: Container(
-              height: 1,
-              color: Colors.blue[700],
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.border),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+            ),
+            child: DropdownButton<String>(
+              value: value,
+              onChanged: onChanged,
+              items: items.map((item) {
+                return DropdownMenuItem<String>(
+                  value: item['value'],
+                  child: Text(item['label']!),
+                );
+              }).toList(),
+              style: AppTypography.body.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+              underline: const SizedBox.shrink(),
+              isDense: true,
             ),
           ),
         ],
@@ -473,39 +481,40 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
 
   Widget _buildInfoCard() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: Colors.blue[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue[200]!, width: 1),
+        color: AppColors.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.2),
+          width: AppSpacing.borderThin,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
-              const SizedBox(width: 8),
+              Icon(Icons.info_outlined, color: AppColors.primary, size: 20),
+              const SizedBox(width: AppSpacing.sm),
               Text(
                 'Información',
-                style: TextStyle(
-                  fontSize: 16,
+                style: AppTypography.body.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue[700],
+                  color: AppColors.primary,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             '• Las notificaciones se activan solo para alertas de severidad MEDIA o superior\n'
             '• Existe un tiempo de enfriamiento de 30 segundos entre alertas del mismo tipo\n'
             '• El modo silencioso puede activarse temporalmente durante las pruebas\n'
             '• Los ajustes se guardan automáticamente en el dispositivo',
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.blue[800],
-              height: 1.4,
+            style: AppTypography.caption.copyWith(
+              color: AppColors.textPrimary,
+              height: 1.5,
             ),
           ),
         ],

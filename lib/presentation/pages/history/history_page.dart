@@ -8,6 +8,8 @@ import '../../blocs/session/session_state.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../../domain/entities/driving_session.dart';
 import '../../../core/utils/app_colors.dart';
+import '../../../core/utils/app_spacing.dart';
+import '../../../core/utils/app_typography.dart';
 import '../../../core/widgets/common_card.dart';
 import '../../../core/utils/formatters.dart';
 
@@ -37,17 +39,16 @@ class _HistoryPageState extends State<HistoryPage> {
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Historial de Sesiones',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
+          style: AppTypography.h3.copyWith(
             color: Colors.white,
           ),
         ),
         backgroundColor: AppColors.primaryDark,
-        elevation: 2,
+        elevation: AppSpacing.elevation2,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_outlined, color: Colors.white),
           onPressed: () => context.pop(),
         ),
       ),
@@ -57,21 +58,47 @@ class _HistoryPageState extends State<HistoryPage> {
             return const Center(child: CircularProgressIndicator());
           } else if (state is SessionError) {
             return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Error: ${state.message}',
-                    style: const TextStyle(color: AppColors.error),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _loadSessions,
-                    child: const Text('Reintentar'),
-                  ),
-                ],
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.xl),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 64,
+                      color: AppColors.textDisabled,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      'Error al cargar sesiones',
+                      style: AppTypography.h4.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      state.message,
+                      style: AppTypography.body.copyWith(
+                        color: AppColors.danger,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    ElevatedButton.icon(
+                      onPressed: _loadSessions,
+                      icon: const Icon(Icons.refresh_outlined),
+                      label: const Text('Reintentar'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.lg,
+                          vertical: AppSpacing.md,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           } else if (state is SessionsLoaded) {
@@ -89,36 +116,42 @@ class _HistoryPageState extends State<HistoryPage> {
   Widget _buildSessionsList(List<DrivingSession> sessions) {
     if (sessions.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.history, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            const Text(
-              'No hay sesiones registradas',
-              style: TextStyle(
-                fontSize: 18,
-                color: AppColors.textSecondary,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.history_outlined,
+                size: 80,
+                color: AppColors.textDisabled,
               ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Comienza a monitorear tu conducción para ver el historial aquí',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                'No hay sesiones registradas',
+                style: AppTypography.h3.copyWith(
+                  color: AppColors.textPrimary,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Comienza a monitorear tu conducción para ver el historial aquí',
+                textAlign: TextAlign.center,
+                style: AppTypography.body.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
 
     return RefreshIndicator(
       onRefresh: () async => _loadSessions(),
+      color: AppColors.primary,
       child: ListView.builder(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.md),
         itemCount: sessions.length,
         itemBuilder: (context, index) {
           final session = sessions[index];
@@ -134,88 +167,112 @@ class _HistoryPageState extends State<HistoryPage> {
         : Duration.zero;
 
     return CommonCard(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
       child: InkWell(
         onTap: () => _showSessionDetails(session),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Header con badge y fecha
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _getStatusColor(session.status),
-                        ),
+                  Expanded(
+                    child: Text(
+                      'Sesión de Conducción',
+                      style: AppTypography.body.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _getStatusText(session.status),
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: _getStatusColor(session.status),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm,
+                      vertical: AppSpacing.xs,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusCircular),
+                      border: Border.all(
+                        color: _getStatusColor(session.status),
+                        width: AppSpacing.borderThin,
+                      ),
+                    ),
+                    child: Text(
+                      _getStatusText(session.status),
+                      style: AppTypography.caption.copyWith(
+                        color: _getStatusColor(session.status),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Row(
+                children: [
+                  Icon(
+                    Icons.calendar_today_outlined,
+                    size: 16,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 4),
                   Text(
                     Formatters.formatDateTime(session.startTime),
-                    style: const TextStyle(
-                      fontSize: 12,
+                    style: AppTypography.caption.copyWith(
                       color: AppColors.textSecondary,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
+              // Stats en grid 2x2
               Row(
                 children: [
                   Expanded(
                     child: _buildSessionStat(
                       'Duración',
                       _formatDuration(duration),
-                      Icons.timer,
+                      Icons.timer_outlined,
                     ),
                   ),
+                  const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: _buildSessionStat(
                       'Distancia',
                       '${session.totalDistance.toStringAsFixed(1)} km',
-                      Icons.straighten,
+                      Icons.straighten_outlined,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Row(
                 children: [
                   Expanded(
                     child: _buildSessionStat(
                       'Vel. Prom.',
                       '${session.averageSpeed.toStringAsFixed(1)} km/h',
-                      Icons.speed,
+                      Icons.speed_outlined,
                     ),
                   ),
+                  const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: _buildSessionStat(
                       'Riesgo',
                       '${session.riskScore.toStringAsFixed(0)}%',
-                      Icons.warning,
+                      Icons.warning_amber_outlined,
                       valueColor: _getRiskColor(session.riskScore),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               _buildAlertsSummary(session.dailyStats),
             ],
           ),
@@ -232,27 +289,33 @@ class _HistoryPageState extends State<HistoryPage> {
   }) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: AppColors.textSecondary),
-        const SizedBox(width: 4),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 11,
-                color: AppColors.textSecondary,
+        Icon(
+          icon,
+          size: 20,
+          color: AppColors.textSecondary,
+        ),
+        const SizedBox(width: AppSpacing.xs),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                ),
               ),
-            ),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: valueColor ?? AppColors.textPrimary,
+              Text(
+                value,
+                style: AppTypography.body.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: valueColor ?? AppColors.textPrimary,
+                  fontSize: 14,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
@@ -260,39 +323,76 @@ class _HistoryPageState extends State<HistoryPage> {
 
   Widget _buildAlertsSummary(DailyStats stats) {
     return Container(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.symmetric(
+        vertical: AppSpacing.sm,
+        horizontal: AppSpacing.md,
+      ),
       decoration: BoxDecoration(
         color: AppColors.backgroundLight,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300, width: 1),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+        border: Border.all(
+          color: AppColors.border,
+          width: AppSpacing.borderThin,
+        ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildAlertCount('Distracción', stats.distractionCount, AppColors.warning),
-          _buildAlertCount('Imprudencia', stats.recklessCount, AppColors.error),
-          _buildAlertCount('Emergencia', stats.emergencyCount, AppColors.error),
+          _buildAlertCount(
+            'Distracción',
+            stats.distractionCount,
+            AppColors.warning,
+            Icons.visibility_off_outlined,
+          ),
+          Container(
+            width: 1,
+            height: 32,
+            color: AppColors.divider,
+          ),
+          _buildAlertCount(
+            'Imprudencia',
+            stats.recklessCount,
+            AppColors.moderate,
+            Icons.speed_outlined,
+          ),
+          Container(
+            width: 1,
+            height: 32,
+            color: AppColors.divider,
+          ),
+          _buildAlertCount(
+            'Emergencia',
+            stats.emergencyCount,
+            AppColors.danger,
+            Icons.emergency_outlined,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildAlertCount(String label, int count, Color color) {
+  Widget _buildAlertCount(String label, int count, Color color, IconData icon) {
     return Column(
       children: [
+        Icon(
+          icon,
+          size: 20,
+          color: color,
+        ),
+        const SizedBox(height: 4),
         Text(
           count.toString(),
-          style: TextStyle(
-            fontSize: 16,
+          style: AppTypography.h4.copyWith(
             fontWeight: FontWeight.bold,
             color: color,
+            fontSize: 18,
           ),
         ),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 10,
+          style: AppTypography.caption.copyWith(
             color: AppColors.textSecondary,
+            fontSize: 10,
           ),
         ),
       ],
@@ -328,7 +428,7 @@ class _HistoryPageState extends State<HistoryPage> {
   Color _getRiskColor(double riskScore) {
     if (riskScore < 30) return AppColors.success;
     if (riskScore < 60) return AppColors.warning;
-    return AppColors.error;
+    return AppColors.danger;
   }
 
   String _formatDuration(Duration duration) {
@@ -450,7 +550,7 @@ class _HistoryPageState extends State<HistoryPage> {
           SizedBox(
             width: 140,
             child: Text(
-              label + ':',
+              '$label:',
               style: const TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary,

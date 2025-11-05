@@ -99,114 +99,124 @@ class DetectionConfig {
     required this.noiseFilterMaxGyro,
   });
 
-  /// Configuración para modo LEVE (Relaxed)
+  /// Configuración para modo LEVE (Relaxed) - Para conductores experimentados
+  /// Valores calibrados explícitamente - Menos alertas, umbrales más altos
   factory DetectionConfig.relaxed({bool useGimbal = false}) {
     return DetectionConfig(
       mode: SensitivityMode.relaxed,
       useGimbal: useGimbal,
-      // Harsh Braking - Menos sensible (-35%)
-      harshBrakingAccelY: -1.95,  // -3.0 * 0.65
-      harshBrakingMinConfidence: 0.23,  // 0.35 * 0.65
-      harshBrakingGyroStability: useGimbal ? 38.5 : 123.0,  // * 1.54 (inverso para estabilidad)
-      harshBrakingDeltaZMin: useGimbal ? 0.065 : 0.13,  // * 0.65
-      harshBrakingDeltaZMax: useGimbal ? 15.4 : 7.7,  // * 1.54 (inverso)
-      // Aggressive Acceleration (-35%)
-      aggressiveAccelAccelY: 1.95,  // 3.0 * 0.65
-      aggressiveAccelMinConfidence: 0.26,  // 0.40 * 0.65
-      aggressiveAccelGyroStability: useGimbal ? 77.0 : 108.0,  // * 1.54
-      // Sharp Turn (-35%)
-      sharpTurnGyroZ: 26.0,  // 40.0 * 0.65
-      sharpTurnAccelX: 1.95,  // 3.0 * 0.65
-      sharpTurnMinConfidence: 0.23,  // 0.35 * 0.65
-      sharpTurnGyroStability: useGimbal ? 38.5 : 23.0,  // * 1.54
-      // Weaving (-35%)
-      weavingGyroZ: 13.0,  // 20.0 * 0.65
-      weavingAccelX: 1.3,  // 2.0 * 0.65
-      weavingMinConfidence: 0.23,  // 0.35 * 0.65
-      // Rough Road (-35%)
-      roughRoadAccelZ: 1.3,  // 2.0 * 0.65
-      roughRoadMinConfidence: 0.26,  // 0.40 * 0.65
-      // Speed Bump (-35%)
-      speedBumpFirstPeak: 1.63,  // 2.5 * 0.65
-      speedBumpSecondPeak: -1.43,  // -2.2 * 0.65
-      speedBumpMinConfidence: 0.23,  // 0.35 * 0.65
-      // Filtros de ruido - Menos estrictos (aumentados)
-      noiseFilterMaxAccel: useGimbal ? 54.0 : 77.0,  // * 1.54
-      noiseFilterMaxGyro: useGimbal ? 462.0 : 770.0,  // * 1.54
+      // Harsh Braking - Menos sensible (solo frenados muy fuertes)
+      // AJUSTADO: Reducido 15% para mayor sensibilidad (-2.5 → -2.125)
+      harshBrakingAccelY: -2.125,  // Más permisivo que normal (-1.275)
+      harshBrakingMinConfidence: 0.25,
+      harshBrakingGyroStability: 100.0,  // Muy permisivo
+      harshBrakingDeltaZMin: 0.2,
+      harshBrakingDeltaZMax: 5.0,
+      // Aggressive Acceleration - Menos sensible
+      // AJUSTADO: Reducido 15% para mayor sensibilidad (4.5 → 3.825)
+      aggressiveAccelAccelY: 3.825,  // Más alto que normal (2.975)
+      aggressiveAccelMinConfidence: 0.30,
+      aggressiveAccelGyroStability: 60.0,
+      // Sharp Turn - Menos sensible (solo giros cerrados)
+      sharpTurnGyroZ: 40.0,  // Más alto que normal (30.0)
+      sharpTurnAccelX: 3.0,  // Más alto que normal (2.2)
+      sharpTurnMinConfidence: 0.30,
+      sharpTurnGyroStability: 25.0,
+      // Weaving - Menos sensible
+      weavingGyroZ: 20.0,
+      weavingAccelX: 2.0,
+      weavingMinConfidence: 0.35,
+      // Rough Road - Menos sensible
+      roughRoadAccelZ: 2.0,
+      roughRoadMinConfidence: 0.40,
+      // Speed Bump - Menos sensible
+      speedBumpFirstPeak: 3.5,  // Más alto que normal (2.5)
+      speedBumpSecondPeak: -3.0,  // Más estricto que normal (-2.2)
+      speedBumpMinConfidence: 0.30,
+      // Filtros de ruido - Muy permisivos
+      noiseFilterMaxAccel: 25.0,
+      noiseFilterMaxGyro: 250.0,
     );
   }
 
   /// Configuración para modo MODERADO (Normal) - RECOMENDADO
+  /// Valores calibrados cuidadosamente - Balance óptimo entre precisión y cobertura
+  /// ESTOS SON LOS VALORES BASE DE detection_thresholds.dart
   factory DetectionConfig.normal({bool useGimbal = false}) {
     return DetectionConfig(
       mode: SensitivityMode.normal,
       useGimbal: useGimbal,
-      // Harsh Braking - Balance (-35%)
-      harshBrakingAccelY: -1.3,  // -2.0 * 0.65
-      harshBrakingMinConfidence: 0.20,  // 0.30 * 0.65 (redondeado a 0.20)
-      harshBrakingGyroStability: useGimbal ? 46.2 : 123.0,  // * 1.54
-      harshBrakingDeltaZMin: useGimbal ? 0.065 : 0.13,  // * 0.65
-      harshBrakingDeltaZMax: useGimbal ? 15.4 : 7.7,  // * 1.54
-      // Aggressive Acceleration (-35%)
-      aggressiveAccelAccelY: 1.3,  // 2.0 * 0.65
-      aggressiveAccelMinConfidence: 0.20,  // 0.30 * 0.65
-      aggressiveAccelGyroStability: useGimbal ? 77.0 : 92.4,  // * 1.54
-      // Sharp Turn (-35%)
-      sharpTurnGyroZ: 19.5,  // 30.0 * 0.65
-      sharpTurnAccelX: 1.63,  // 2.5 * 0.65
-      sharpTurnMinConfidence: 0.20,  // 0.30 * 0.65
-      sharpTurnGyroStability: useGimbal ? 30.8 : 23.0,  // * 1.54
-      // Weaving (-35%)
-      weavingGyroZ: 9.75,  // 15.0 * 0.65
-      weavingAccelX: 0.98,  // 1.5 * 0.65
-      weavingMinConfidence: 0.20,  // 0.30 * 0.65
-      // Rough Road (-35%)
-      roughRoadAccelZ: 0.98,  // 1.5 * 0.65
-      roughRoadMinConfidence: 0.23,  // 0.35 * 0.65
-      // Speed Bump (-35%)
-      speedBumpFirstPeak: 1.3,  // 2.0 * 0.65
-      speedBumpSecondPeak: -1.17,  // -1.8 * 0.65
-      speedBumpMinConfidence: 0.20,  // 0.30 * 0.65
-      // Filtros de ruido - Menos estrictos (aumentados)
-      noiseFilterMaxAccel: useGimbal ? 61.6 : 92.4,  // * 1.54
-      noiseFilterMaxGyro: useGimbal ? 539.0 : 924.0,  // * 1.54
+      // Harsh Braking - Balance calibrado
+      // AJUSTADO: Reducido 15% para mayor sensibilidad (-1.5 → -1.275)
+      harshBrakingAccelY: -1.275,  // Valor calibrado de detection_thresholds.dart
+      harshBrakingMinConfidence: 0.18,
+      harshBrakingGyroStability: 80.0,
+      harshBrakingDeltaZMin: 0.2,
+      harshBrakingDeltaZMax: 5.0,
+      // Aggressive Acceleration - Balance calibrado v2.1
+      // AJUSTADO: Reducido 15% para mayor sensibilidad (3.5 → 2.975)
+      aggressiveAccelAccelY: 2.975,  // Valor calibrado v2.1 (anti-lomos mejorado)
+      aggressiveAccelMinConfidence: 0.25,
+      aggressiveAccelGyroStability: 45.0,
+      // Sharp Turn - Balance calibrado v2.1 (punto medio)
+      sharpTurnGyroZ: 30.0,  // Valor calibrado v2.1 (punto medio 15→45)
+      sharpTurnAccelX: 2.2,
+      sharpTurnMinConfidence: 0.20,
+      sharpTurnGyroStability: 20.0,
+      // Weaving - Balance calibrado
+      weavingGyroZ: 15.0,
+      weavingAccelX: 1.5,
+      weavingMinConfidence: 0.25,
+      // Rough Road - Balance calibrado
+      roughRoadAccelZ: 1.5,
+      roughRoadMinConfidence: 0.30,
+      // Speed Bump - Balance calibrado
+      speedBumpFirstPeak: 2.5,  // Valor calibrado de detection_thresholds.dart
+      speedBumpSecondPeak: -2.2,
+      speedBumpMinConfidence: 0.22,
+      // Filtros de ruido - Balance
+      noiseFilterMaxAccel: 20.0,
+      noiseFilterMaxGyro: 200.0,
     );
   }
 
-  /// Configuración para modo ESTRICTO (Strict)
+  /// Configuración para modo ESTRICTO (Strict) - Máxima seguridad
+  /// Valores calibrados explícitamente - Más alertas, umbrales más bajos
   factory DetectionConfig.strict({bool useGimbal = false}) {
     return DetectionConfig(
       mode: SensitivityMode.strict,
       useGimbal: useGimbal,
-      // Harsh Braking - Muy sensible (-35%)
-      harshBrakingAccelY: -0.78,  // -1.2 * 0.65
-      harshBrakingMinConfidence: 0.13,  // 0.20 * 0.65
-      harshBrakingGyroStability: useGimbal ? 61.6 : 138.6,  // * 1.54
-      harshBrakingDeltaZMin: useGimbal ? 0.065 : 0.098,  // * 0.65
-      harshBrakingDeltaZMax: useGimbal ? 18.5 : 9.24,  // * 1.54
-      // Aggressive Acceleration (-35%)
-      aggressiveAccelAccelY: 0.98,  // 1.5 * 0.65
-      aggressiveAccelMinConfidence: 0.16,  // 0.25 * 0.65
-      aggressiveAccelGyroStability: useGimbal ? 92.4 : 108.0,  // * 1.54
-      // Sharp Turn (-35%)
-      sharpTurnGyroZ: 13.0,  // 20.0 * 0.65
-      sharpTurnAccelX: 1.17,  // 1.8 * 0.65
-      sharpTurnMinConfidence: 0.13,  // 0.20 * 0.65
-      sharpTurnGyroStability: useGimbal ? 38.5 : 27.7,  // * 1.54
-      // Weaving (-35%)
-      weavingGyroZ: 7.8,  // 12.0 * 0.65
-      weavingAccelX: 0.78,  // 1.2 * 0.65
-      weavingMinConfidence: 0.16,  // 0.25 * 0.65
-      // Rough Road (-35%)
-      roughRoadAccelZ: 0.78,  // 1.2 * 0.65
-      roughRoadMinConfidence: 0.20,  // 0.30 * 0.65 (redondeado)
-      // Speed Bump (-35%)
-      speedBumpFirstPeak: 0.98,  // 1.5 * 0.65
-      speedBumpSecondPeak: -0.98,  // -1.5 * 0.65
-      speedBumpMinConfidence: 0.16,  // 0.25 * 0.65
-      // Filtros de ruido - Menos estrictos (aumentados)
-      noiseFilterMaxAccel: useGimbal ? 77.0 : 108.0,  // * 1.54
-      noiseFilterMaxGyro: useGimbal ? 616.0 : 1078.0,  // * 1.54
+      // Harsh Braking - Muy sensible (detecta frenados moderados)
+      // AJUSTADO: Reducido 15% para mayor sensibilidad (-1.0 → -0.85)
+      harshBrakingAccelY: -0.85,  // Más sensible que normal (-1.275)
+      harshBrakingMinConfidence: 0.15,
+      harshBrakingGyroStability: 60.0,  // Menos permisivo
+      harshBrakingDeltaZMin: 0.2,
+      harshBrakingDeltaZMax: 5.0,
+      // Aggressive Acceleration - Muy sensible
+      // AJUSTADO: Reducido 15% para mayor sensibilidad (2.5 → 2.125)
+      aggressiveAccelAccelY: 2.125,  // Más bajo que normal (2.975)
+      aggressiveAccelMinConfidence: 0.18,
+      aggressiveAccelGyroStability: 35.0,
+      // Sharp Turn - Muy sensible (detecta giros moderados)
+      sharpTurnGyroZ: 25.0,  // Más bajo que normal (30.0)
+      sharpTurnAccelX: 1.8,  // Más bajo que normal (2.2)
+      sharpTurnMinConfidence: 0.18,
+      sharpTurnGyroStability: 18.0,
+      // Weaving - Muy sensible
+      weavingGyroZ: 12.0,
+      weavingAccelX: 1.2,
+      weavingMinConfidence: 0.20,
+      // Rough Road - Muy sensible
+      roughRoadAccelZ: 1.2,
+      roughRoadMinConfidence: 0.25,
+      // Speed Bump - Muy sensible
+      speedBumpFirstPeak: 2.0,  // Más bajo que normal (2.5)
+      speedBumpSecondPeak: -1.8,  // Menos estricto que normal (-2.2)
+      speedBumpMinConfidence: 0.18,
+      // Filtros de ruido - Más permisivos para no perder eventos
+      noiseFilterMaxAccel: 25.0,
+      noiseFilterMaxGyro: 250.0,
     );
   }
 

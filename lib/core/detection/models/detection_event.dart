@@ -49,6 +49,15 @@ class DetectionEvent extends Equatable {
         return 'Camino irregular o con baches';
       case EventType.speedBump:
         return 'Paso por lomo de toro';
+      // Eventos de visión (Fase 1 - preparación para Fase 2)
+      case EventType.distraction:
+        return 'Distracción detectada - uso de teléfono';
+      case EventType.inattention:
+        return 'Desatención visual detectada';
+      case EventType.handsOff:
+        return 'Manos fuera del volante detectadas';
+      case EventType.noFaceDetected:
+        return 'Ajusta tu posición - rostro no detectado';
     }
   }
 

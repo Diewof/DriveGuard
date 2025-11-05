@@ -4,6 +4,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/entities/emergency_contact.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_state.dart';
+import '../../../core/utils/app_colors.dart';
+import '../../../core/utils/app_spacing.dart';
+import '../../../core/utils/app_typography.dart';
+import '../../../core/widgets/common_card.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -34,24 +38,28 @@ class _ProfilePageState extends State<ProfilePage> {
           .orderBy('priority')
           .get();
 
-      setState(() {
-        _emergencyContacts = snapshot.docs.map((doc) {
-          final data = doc.data();
-          return EmergencyContact(
-            id: doc.id,
-            name: data['name'] ?? '',
-            phoneNumber: data['phoneNumber'] ?? '',
-            relationship: data['relationship'] ?? '',
-            priority: data['priority'] ?? 1,
-            isActive: data['isActive'] ?? true,
-          );
-        }).toList();
-        _isLoadingContacts = false;
-      });
+      if (mounted) {
+        setState(() {
+          _emergencyContacts = snapshot.docs.map((doc) {
+            final data = doc.data();
+            return EmergencyContact(
+              id: doc.id,
+              name: data['name'] ?? '',
+              phoneNumber: data['phoneNumber'] ?? '',
+              relationship: data['relationship'] ?? '',
+              priority: data['priority'] ?? 1,
+              isActive: data['isActive'] ?? true,
+            );
+          }).toList();
+          _isLoadingContacts = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _isLoadingContacts = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoadingContacts = false;
+        });
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -66,12 +74,17 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
-        title: const Text('Mi Perfil'),
-        backgroundColor: Colors.blue[900],
+        title: Text(
+          'Mi Perfil',
+          style: AppTypography.h3.copyWith(
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: AppColors.primaryDark,
         foregroundColor: Colors.white,
-        elevation: 0,
+        elevation: AppSpacing.elevation2,
       ),
       body: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
@@ -89,184 +102,220 @@ class _ProfilePageState extends State<ProfilePage> {
               physics: const AlwaysScrollableScrollPhysics(),
               child: Column(
                 children: [
-                  // Header con foto de perfil
+                  // Header con gradiente y avatar
                   Container(
                     width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.blue[900],
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppColors.primaryDark, AppColors.primary],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                       borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(30),
-                        bottomRight: Radius.circular(30),
+                        bottomLeft: Radius.circular(AppSpacing.radiusXLarge),
+                        bottomRight: Radius.circular(AppSpacing.radiusXLarge),
                       ),
                     ),
                     child: Column(
                       children: [
-                        const SizedBox(height: 20),
-                        CircleAvatar(
-                          radius: 60,
-                          backgroundColor: Colors.white,
-                          child: user.photoUrl != null && user.photoUrl!.isNotEmpty
-                              ? ClipOval(
-                                  child: Image.network(
-                                    user.photoUrl!,
-                                    width: 120,
-                                    height: 120,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Icon(
-                                        Icons.person,
-                                        size: 60,
-                                        color: Colors.blue[900],
-                                      );
-                                    },
+                        const SizedBox(height: AppSpacing.xl),
+                        // Avatar con borde y sombra
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white,
+                              width: 4,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.2),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: CircleAvatar(
+                            radius: 60,
+                            backgroundColor: Colors.white,
+                            child: user.photoUrl != null && user.photoUrl!.isNotEmpty
+                                ? ClipOval(
+                                    child: Image.network(
+                                      user.photoUrl!,
+                                      width: 120,
+                                      height: 120,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Icon(
+                                          Icons.person_outline,
+                                          size: 60,
+                                          color: AppColors.primary,
+                                        );
+                                      },
+                                    ),
+                                  )
+                                : Icon(
+                                    Icons.person_outline,
+                                    size: 60,
+                                    color: AppColors.primary,
                                   ),
-                                )
-                              : Icon(
-                                  Icons.person,
-                                  size: 60,
-                                  color: Colors.blue[900],
-                                ),
+                          ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.md),
                         Text(
                           user.name,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                          style: AppTypography.h2.copyWith(
                             color: Colors.white,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: AppSpacing.xs),
                         Text(
                           user.email,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.white70,
+                          style: AppTypography.body.copyWith(
+                            color: Colors.white.withValues(alpha: 0.9),
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: AppSpacing.xl),
                       ],
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: AppSpacing.lg),
 
                   // Información Personal
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Información Personal',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                          style: AppTypography.h3.copyWith(
+                            color: AppColors.textPrimary,
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.md),
 
                         // Card de información personal
-                        Card(
-                          elevation: 2,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              children: [
-                                _buildInfoRow(
-                                  icon: Icons.phone_outlined,
-                                  label: 'Teléfono',
-                                  value: user.phoneNumber ?? 'No registrado',
+                        CommonCard(
+                          child: Column(
+                            children: [
+                              _buildInfoRow(
+                                icon: Icons.phone_outlined,
+                                label: 'Teléfono',
+                                value: user.phoneNumber ?? 'No registrado',
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: AppSpacing.md,
                                 ),
-                                const Divider(height: 24),
-                                _buildInfoRow(
-                                  icon: Icons.home_outlined,
-                                  label: 'Dirección',
-                                  value: user.address ?? 'No registrada',
+                                child: Divider(
+                                  height: 1,
+                                  color: AppColors.divider,
                                 ),
-                                const Divider(height: 24),
-                                _buildInfoRow(
-                                  icon: Icons.cake_outlined,
-                                  label: 'Edad',
-                                  value: user.age != null
-                                      ? '${user.age} años'
-                                      : 'No registrada',
+                              ),
+                              _buildInfoRow(
+                                icon: Icons.home_outlined,
+                                label: 'Dirección',
+                                value: user.address ?? 'No registrada',
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: AppSpacing.md,
                                 ),
-                                const Divider(height: 24),
-                                _buildInfoRow(
-                                  icon: Icons.calendar_today_outlined,
-                                  label: 'Miembro desde',
-                                  value: _formatDate(user.createdAt),
+                                child: Divider(
+                                  height: 1,
+                                  color: AppColors.divider,
                                 ),
-                              ],
-                            ),
+                              ),
+                              _buildInfoRow(
+                                icon: Icons.cake_outlined,
+                                label: 'Edad',
+                                value: user.age != null
+                                    ? '${user.age} años'
+                                    : 'No registrada',
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: AppSpacing.md,
+                                ),
+                                child: Divider(
+                                  height: 1,
+                                  color: AppColors.divider,
+                                ),
+                              ),
+                              _buildInfoRow(
+                                icon: Icons.calendar_today_outlined,
+                                label: 'Miembro desde',
+                                value: _formatDate(user.createdAt),
+                              ),
+                            ],
                           ),
                         ),
 
-                        const SizedBox(height: 32),
+                        const SizedBox(height: AppSpacing.xl),
 
                         // Contactos de Emergencia
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
+                            Text(
                               'Contactos de Emergencia',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
+                              style: AppTypography.h3.copyWith(
+                                color: AppColors.textPrimary,
                               ),
                             ),
-                            IconButton(
-                              onPressed: _showAddContactDialog,
-                              icon: const Icon(Icons.add_circle),
-                              color: Colors.blue[900],
-                              iconSize: 28,
+                            Container(
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: IconButton(
+                                onPressed: _showAddContactDialog,
+                                icon: const Icon(Icons.add_circle_outline),
+                                color: AppColors.primary,
+                                iconSize: AppSpacing.iconLarge,
+                              ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.md),
 
                         // Lista de contactos de emergencia
                         if (_isLoadingContacts)
                           const Center(
                             child: Padding(
-                              padding: EdgeInsets.all(32.0),
+                              padding: EdgeInsets.all(AppSpacing.xl),
                               child: CircularProgressIndicator(),
                             ),
                           )
                         else if (_emergencyContacts.isEmpty)
-                          Card(
-                            elevation: 2,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15),
-                            ),
+                          CommonCard(
                             child: Padding(
-                              padding: const EdgeInsets.all(32.0),
+                              padding: const EdgeInsets.all(AppSpacing.xl),
                               child: Column(
                                 children: [
                                   Icon(
                                     Icons.contacts_outlined,
-                                    size: 60,
-                                    color: Colors.grey[400],
+                                    size: 64,
+                                    color: AppColors.textDisabled,
                                   ),
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: AppSpacing.md),
                                   Text(
                                     'No hay contactos de emergencia',
-                                    style: TextStyle(
-                                      color: Colors.grey[600],
-                                      fontSize: 16,
+                                    style: AppTypography.body.copyWith(
+                                      color: AppColors.textSecondary,
                                     ),
                                   ),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: AppSpacing.sm),
                                   TextButton.icon(
                                     onPressed: _showAddContactDialog,
                                     icon: const Icon(Icons.add),
                                     label: const Text('Agregar contacto'),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: AppColors.primary,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -274,84 +323,116 @@ class _ProfilePageState extends State<ProfilePage> {
                           )
                         else
                           ..._emergencyContacts.map((contact) {
-                            return Card(
-                              elevation: 2,
-                              margin: const EdgeInsets.only(bottom: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(15),
-                              ),
-                              child: ListTile(
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 12,
-                                ),
-                                leading: CircleAvatar(
-                                  backgroundColor: Colors.blue[900],
-                                  radius: 28,
-                                  child: Text(
-                                    contact.name[0].toUpperCase(),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                title: Text(
-                                  contact.name,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      contact.phoneNumber,
-                                      style: TextStyle(
-                                        color: Colors.grey[700],
-                                        fontSize: 14,
+                            return CommonCard(
+                              margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(AppSpacing.md),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 56,
+                                        height: 56,
+                                        decoration: BoxDecoration(
+                                          gradient: const LinearGradient(
+                                            colors: AppColors.gradientPrimary,
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                          ),
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: AppColors.primary.withValues(alpha: 0.3),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            contact.name[0].toUpperCase(),
+                                            style: AppTypography.h2.copyWith(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      contact.relationship,
-                                      style: TextStyle(
-                                        color: Colors.blue[700],
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500,
+                                      const SizedBox(width: AppSpacing.md),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              contact.name,
+                                              style: AppTypography.body.copyWith(
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.textPrimary,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              contact.phoneNumber,
+                                              style: AppTypography.caption.copyWith(
+                                                color: AppColors.textSecondary,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: AppSpacing.sm,
+                                                vertical: 2,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.primary.withValues(alpha: 0.1),
+                                                borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                                              ),
+                                              child: Text(
+                                                contact.relationship,
+                                                style: AppTypography.caption.copyWith(
+                                                  color: AppColors.primary,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                trailing: PopupMenuButton(
-                                  icon: const Icon(Icons.more_vert),
-                                  itemBuilder: (context) => [
-                                    const PopupMenuItem(
-                                      value: 'delete',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.delete_outline,
-                                              color: Colors.red),
-                                          SizedBox(width: 8),
-                                          Text('Eliminar'),
+                                      PopupMenuButton(
+                                        icon: Icon(
+                                          Icons.more_vert_outlined,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                        itemBuilder: (context) => [
+                                          const PopupMenuItem(
+                                            value: 'delete',
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.delete_outline,
+                                                  color: AppColors.danger,
+                                                ),
+                                                SizedBox(width: AppSpacing.sm),
+                                                Text('Eliminar'),
+                                              ],
+                                            ),
+                                          ),
                                         ],
+                                        onSelected: (value) {
+                                          if (value == 'delete') {
+                                            _deleteContact(contact);
+                                          }
+                                        },
                                       ),
-                                    ),
-                                  ],
-                                  onSelected: (value) {
-                                    if (value == 'delete') {
-                                      _deleteContact(contact);
-                                    }
-                                  },
+                                    ],
+                                  ),
                                 ),
                               ),
                             );
                           }),
 
-                        const SizedBox(height: 32),
+                        const SizedBox(height: AppSpacing.xl),
                       ],
                     ),
                   ),
@@ -372,32 +453,34 @@ class _ProfilePageState extends State<ProfilePage> {
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(AppSpacing.sm),
           decoration: BoxDecoration(
-            color: Colors.blue[50],
-            borderRadius: BorderRadius.circular(10),
+            color: AppColors.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
           ),
-          child: Icon(icon, color: Colors.blue[900], size: 24),
+          child: Icon(
+            icon,
+            color: AppColors.primary,
+            size: AppSpacing.iconMedium,
+          ),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: AppSpacing.md),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 value,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black87,
+                style: AppTypography.body.copyWith(
+                  color: AppColors.textPrimary,
                   fontWeight: FontWeight.w600,
                 ),
               ),

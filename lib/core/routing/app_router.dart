@@ -8,6 +8,9 @@ import '../../presentation/pages/profile/profile_page.dart';
 import '../../presentation/pages/history/history_page.dart';
 import '../../presentation/pages/history/session_events_page.dart';
 import '../../presentation/pages/sensor_diagnostics_page.dart';
+import '../../presentation/pages/detection_settings_page.dart';
+import '../../presentation/pages/camera_calibration_page.dart';
+import '../../presentation/pages/support_page.dart';
 import '../../domain/entities/driving_session.dart';
 
 class AppRouter {
@@ -56,6 +59,21 @@ class AppRouter {
         path: '/sensor-diagnostics',
         name: 'sensor-diagnostics',
         builder: (context, state) => const SensorDiagnosticsPage(),
+      ),
+      GoRoute(
+        path: '/detection-settings',
+        name: 'detection-settings',
+        builder: (context, state) => const DetectionSettingsPage(),
+      ),
+      GoRoute(
+        path: '/camera-calibration',
+        name: 'camera-calibration',
+        builder: (context, state) => const CameraCalibrationPage(),
+      ),
+      GoRoute(
+        path: '/support',
+        name: 'support',
+        builder: (context, state) => const SupportPage(),
       ),
     ],
   );

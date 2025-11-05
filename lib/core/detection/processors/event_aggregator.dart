@@ -10,8 +10,8 @@ class EventAggregator {
   final Map<String, DateTime> _lastEventByType = {};
 
   static const int maxRecentEvents = 50;
-  static const int maxVisualAlertsPerMinute = 5;
-  static const int maxAudioAlertsPerMinute = 1;
+  static const int maxVisualAlertsPerMinute = 15; // CORREGIDO: Aumentado de 5 a 15 para modo sensible
+  static const int maxAudioAlertsPerMinute = 3; // Aumentado de 1 a 3 para mejor feedback
 
   int _visualAlertsInLastMinute = 0;
   int _audioAlertsInLastMinute = 0;
@@ -55,11 +55,12 @@ class EventAggregator {
   }
 
   bool _isDuplicate(DetectionEvent event) {
-    // Verificar si hay un evento del mismo tipo en los últimos 2 segundos
+    // CORREGIDO: Reducir ventana de 2s a 500ms para no perder eventos reales
+    // Verificar si hay un evento del mismo tipo en los últimos 500ms
     final lastTime = _lastEventByType[event.type.value];
     if (lastTime != null) {
       final timeDiff = DateTime.now().difference(lastTime);
-      if (timeDiff.inSeconds < 2) {
+      if (timeDiff.inMilliseconds < 500) {
         return true; // Es un duplicado
       }
     }

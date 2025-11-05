@@ -1,0 +1,565 @@
+import 'dart:async';
+import 'dart:math';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:equatable/equatable.dart';
+import 'package:geolocator/geolocator.dart';
+import '../../../domain/entities/sensor_data.dart';
+import '../../../core/services/sensor_service_factory.dart';
+import '../../../core/services/notification_service.dart';
+import '../../../core/detection/processors/sensor_data_processor.dart';
+import '../../../core/detection/processors/event_aggregator.dart';
+import '../../../core/detection/models/detection_event.dart';
+import '../../../core/detection/models/sensor_reading.dart';
+import '../../../core/detection/models/event_type.dart' as det;
+import '../../../core/detection/models/event_severity.dart' as det;
+import '../session/session_bloc.dart';
+import '../session/session_event.dart' as session_events;
+import '../session/session_state.dart';
+import '../auth/auth_bloc.dart';
+import '../../../domain/entities/session_event.dart' as domain;
+
+part 'dashboard_event.dart';
+part 'dashboard_state.dart';
+
+class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
+  final ISensorService _sensorService = SensorServiceFactory.create();
+  final NotificationService _notificationService;
+  final SensorDataProcessor _sensorProcessor = SensorDataProcessor();
+  final EventAggregator _eventAggregator = EventAggregator();
+  final SessionBloc _sessionBloc;
+  final AuthBloc _authBloc;
+  Timer? _sessionTimer;
+  StreamSubscription<SensorData>? _sensorSubscription;
+  StreamSubscription<DetectionEvent>? _detectionEventSubscription;
+  StreamSubscription<SensorReading>? _rawDataSubscription;
+  String? _currentSessionId;
+
+  DashboardBloc({
+    required SessionBloc sessionBloc,
+    required AuthBloc authBloc,
+  }) : _sessionBloc = sessionBloc,
+       _authBloc = authBloc,
+       _notificationService = NotificationService(),
+       super(const DashboardState()) {
+    on<DashboardStartMonitoring>(_onStartMonitoring);
+    on<DashboardStopMonitoring>(_onStopMonitoring);
+    on<DashboardSensorDataReceived>(_onSensorDataReceived);
+    on<DashboardDetectionEventReceived>(_onDetectionEventReceived);
+    on<DashboardTriggerAlert>(_onTriggerAlert);
+    on<DashboardSessionTick>(_onSessionTick);
+    on<DashboardEmergencyActivated>(_onEmergencyActivated);
+    on<_DeviceConnected>(_onDeviceConnected);
+
+    _initializeServices();
+  }
+
+  Future<void> _initializeServices() async {
+    await _notificationService.initialize();
+
+    // Simular conexión del dispositivo
+    Future.delayed(const Duration(seconds: 2), () {
+      add(_DeviceConnected());
+    });
+  }
+
+  void _onStartMonitoring(DashboardStartMonitoring event, Emitter<DashboardState> emit) async {
+    emit(state.copyWith(
+      isMonitoring: true,
+      sessionDuration: Duration.zero,
+      distractionCount: 0,
+      recklessCount: 0,
+      emergencyCount: 0,
+      recentAlerts: [],
+    ));
+
+    // Iniciar sesión automáticamente
+    await _startSession();
+
+    _sensorService.start();
+    _listenToSensorData();
+    _listenToDetectionEvents();
+    _startSessionTimer();
+  }
+
+  void _onStopMonitoring(DashboardStopMonitoring event, Emitter<DashboardState> emit) async {
+    emit(state.copyWith(
+      isMonitoring: false,
+      currentAlertType: 'NORMAL',
+      riskScore: 0.0,
+    ));
+
+    // Finalizar sesión automáticamente
+    await _endSession();
+
+    _sensorService.stop();
+    _sessionTimer?.cancel();
+    _sensorSubscription?.cancel();
+    _detectionEventSubscription?.cancel();
+    _rawDataSubscription?.cancel();
+
+    // Resetear procesadores
+    _sensorProcessor.resetDetectors();
+    _eventAggregator.clearHistory();
+  }
+
+  void _onSensorDataReceived(DashboardSensorDataReceived event, Emitter<DashboardState> emit) {
+    final sensorData = event.sensorData;
+
+    // Procesar datos a través del nuevo sistema de detección
+    _sensorProcessor.processSensorData(sensorData);
+
+    // Calcular risk score global
+    final riskScore = _eventAggregator.calculateGlobalRiskScore();
+
+    emit(state.copyWith(
+      currentSensorData: sensorData,
+      riskScore: riskScore,
+    ));
+  }
+
+  void _onDetectionEventReceived(DashboardDetectionEventReceived event, Emitter<DashboardState> emit) {
+    final detectionEvent = event.detectionEvent;
+
+    // Convertir DetectionEvent a alerta del dashboard
+    final alertType = _mapEventTypeToString(detectionEvent.type);
+    final severity = _mapSeverityToString(detectionEvent.severity);
+
+    // Agregar a la lista de alertas recientes
+    final newAlerts = List<Map<String, dynamic>>.from(state.recentAlerts);
+    newAlerts.insert(0, {
+      'type': alertType,
+      'severity': severity,
+      'time': detectionEvent.timestamp,
+      'confidence': detectionEvent.confidence,
+      'riskScore': detectionEvent.getRiskScore(),
+    });
+
+    if (newAlerts.length > 10) {
+      newAlerts.removeRange(10, newAlerts.length);
+    }
+
+    // Actualizar contadores según tipo de evento
+    int newDistractionCount = state.distractionCount;
+    int newRecklessCount = state.recklessCount;
+    int newEmergencyCount = state.emergencyCount;
+
+    switch (detectionEvent.type) {
+      case det.EventType.weaving:
+        newDistractionCount++;
+        break;
+      case det.EventType.harshBraking:
+      case det.EventType.aggressiveAcceleration:
+      case det.EventType.sharpTurn:
+        newRecklessCount++;
+        break;
+      case det.EventType.roughRoad:
+      case det.EventType.speedBump:
+        // No se cuentan como eventos críticos, son informativos
+        break;
+    }
+
+    if (detectionEvent.severity == det.EventSeverity.critical) {
+      newEmergencyCount++;
+    }
+
+    emit(state.copyWith(
+      currentAlertType: alertType,
+      recentAlerts: newAlerts,
+      distractionCount: newDistractionCount,
+      recklessCount: newRecklessCount,
+      emergencyCount: newEmergencyCount,
+    ));
+
+    // Mostrar notificación
+    _showDetectionNotification(detectionEvent);
+
+    // Guardar evento en sesión
+    _saveDetectionEvent(detectionEvent);
+  }
+
+  void _showDetectionNotification(DetectionEvent detectionEvent) {
+    final alertType = _mapEventTypeToAlertType(detectionEvent.type);
+    final severity = _mapDetectionSeverityToAlertSeverity(detectionEvent.severity);
+
+    _notificationService.showAlert(
+      type: alertType,
+      severity: severity,
+      customMessage: detectionEvent.toAlertMessage(),
+    );
+  }
+
+  AlertType _mapEventTypeToAlertType(det.EventType type) {
+    switch (type) {
+      case det.EventType.harshBraking:
+        return AlertType.harshBraking;
+      case det.EventType.aggressiveAcceleration:
+        return AlertType.aggressiveAcceleration;
+      case det.EventType.sharpTurn:
+        return AlertType.sharpTurn;
+      case det.EventType.weaving:
+        return AlertType.weaving;
+      case det.EventType.roughRoad:
+        return AlertType.roughRoad;
+      case det.EventType.speedBump:
+        return AlertType.speedBump;
+    }
+  }
+
+  AlertSeverity _mapDetectionSeverityToAlertSeverity(det.EventSeverity severity) {
+    switch (severity) {
+      case det.EventSeverity.low:
+        return AlertSeverity.low;
+      case det.EventSeverity.medium:
+        return AlertSeverity.medium;
+      case det.EventSeverity.high:
+        return AlertSeverity.high;
+      case det.EventSeverity.critical:
+        return AlertSeverity.critical;
+    }
+  }
+
+  String _mapEventTypeToString(det.EventType type) {
+    return type.displayName.toUpperCase();
+  }
+
+  String _mapSeverityToString(det.EventSeverity severity) {
+    return severity.value;
+  }
+
+  void _onTriggerAlert(DashboardTriggerAlert event, Emitter<DashboardState> emit) {
+    final newAlerts = List<Map<String, dynamic>>.from(state.recentAlerts);
+    newAlerts.insert(0, {
+      'type': event.type,
+      'severity': event.severity,
+      'time': DateTime.now(),
+    });
+
+    if (newAlerts.length > 10) {
+      newAlerts.removeRange(10, newAlerts.length);
+    }
+
+    emit(state.copyWith(
+      currentAlertType: event.type,
+      recentAlerts: newAlerts,
+    ));
+
+    // Guardar el evento en la sesión si hay una sesión activa
+    _saveSessionEvent(event.type, event.severity);
+  }
+
+  void _onSessionTick(DashboardSessionTick event, Emitter<DashboardState> emit) {
+    if (state.isMonitoring) {
+      emit(state.copyWith(
+        sessionDuration: state.sessionDuration + const Duration(seconds: 1),
+      ));
+    }
+  }
+
+  void _onEmergencyActivated(DashboardEmergencyActivated event, Emitter<DashboardState> emit) {
+    add(const DashboardTriggerAlert(type: 'EMERGENCIA ACTIVADA', severity: 'CRITICAL'));
+  }
+
+  void _onDeviceConnected(_DeviceConnected event, Emitter<DashboardState> emit) {
+    emit(state.copyWith(deviceStatus: 'CONECTADO'));
+  }
+
+  void _listenToSensorData() {
+    _sensorSubscription?.cancel();
+    _sensorSubscription = _sensorService.stream
+        .where((data) => state.isMonitoring)
+        .listen((sensorData) {
+      add(DashboardSensorDataReceived(sensorData));
+    });
+  }
+
+  void _listenToDetectionEvents() {
+    // Escuchar eventos del procesador
+    _detectionEventSubscription?.cancel();
+    _detectionEventSubscription = _sensorProcessor.eventStream
+        .listen((detectionEvent) {
+      // Pasar por el agregador
+      _eventAggregator.processEvent(detectionEvent);
+    });
+
+    // Escuchar eventos agregados
+    _rawDataSubscription?.cancel();
+    _rawDataSubscription = _eventAggregator.eventStream
+        .listen((aggregatedEvent) {
+      if (state.isMonitoring) {
+        add(DashboardDetectionEventReceived(aggregatedEvent));
+      }
+    });
+  }
+
+  void _startSessionTimer() {
+    _sessionTimer?.cancel();
+    _sessionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      add(DashboardSessionTick());
+    });
+  }
+
+  Future<void> _startSession() async {
+    try {
+      final userId = _authBloc.state.user?.id;
+      if (userId == null) return;
+
+      final position = await _getCurrentPosition();
+
+      _sessionBloc.add(session_events.StartSession(
+        userId: userId,
+        deviceId: 'ESP32-001',
+        latitude: position.latitude,
+        longitude: position.longitude,
+      ));
+
+      _sessionBloc.stream.listen((sessionState) {
+        if (sessionState is SessionActive) {
+          _currentSessionId = sessionState.session.id;
+        }
+      });
+    } catch (e) {
+      print('Error starting session: $e');
+    }
+  }
+
+  Future<void> _endSession() async {
+    try {
+      final userId = _authBloc.state.user?.id;
+      if (userId == null || _currentSessionId == null) return;
+
+      final position = await _getCurrentPosition();
+
+      _sessionBloc.add(session_events.EndSession(
+        sessionId: _currentSessionId!,
+        userId: userId,
+        endLatitude: position.latitude,
+        endLongitude: position.longitude,
+      ));
+
+      _currentSessionId = null;
+    } catch (e) {
+      print('Error ending session: $e');
+    }
+  }
+
+  void _saveDetectionEvent(DetectionEvent detectionEvent) async {
+    try {
+      final userId = _authBloc.state.user?.id;
+      if (userId == null || _currentSessionId == null) return;
+
+      final position = await _getCurrentPosition();
+
+      // Mapear tipo de evento de detección a tipo de sesión
+      String mappedEventType;
+      String description = detectionEvent.toAlertMessage();
+
+      switch (detectionEvent.type) {
+        case det.EventType.weaving:
+          mappedEventType = domain.EventType.distraction.value;
+          break;
+        case det.EventType.harshBraking:
+        case det.EventType.aggressiveAcceleration:
+        case det.EventType.sharpTurn:
+          mappedEventType = domain.EventType.recklessDriving.value;
+          break;
+        case det.EventType.roughRoad:
+        case det.EventType.speedBump:
+          mappedEventType = domain.EventType.other.value;
+          break;
+      }
+
+      // Mapear severidad
+      String mappedSeverity;
+      switch (detectionEvent.severity) {
+        case det.EventSeverity.low:
+          mappedSeverity = domain.EventSeverity.low.value;
+          break;
+        case det.EventSeverity.medium:
+          mappedSeverity = domain.EventSeverity.medium.value;
+          break;
+        case det.EventSeverity.high:
+        case det.EventSeverity.critical:
+          mappedSeverity = domain.EventSeverity.high.value;
+          break;
+      }
+
+      // Obtener datos de sensores del evento
+      final sensorData = state.currentSensorData ?? SensorData(
+        id: 'default-sensor-${DateTime.now().millisecondsSinceEpoch}',
+        accelerationX: 0.0,
+        accelerationY: 0.0,
+        accelerationZ: 9.8,
+        gyroscopeX: 0.0,
+        gyroscopeY: 0.0,
+        gyroscopeZ: 0.0,
+        timestamp: DateTime.now(),
+      );
+
+      _sessionBloc.add(session_events.AddSessionEvent(
+        sessionId: _currentSessionId!,
+        userId: userId,
+        eventType: mappedEventType,
+        severity: mappedSeverity,
+        description: description,
+        latitude: position.latitude,
+        longitude: position.longitude,
+        sensorData: {
+          'accelX': sensorData.accelerationX,
+          'accelY': sensorData.accelerationY,
+          'accelZ': sensorData.accelerationZ,
+          'gyroX': sensorData.gyroscopeX,
+          'gyroY': sensorData.gyroscopeY,
+          'gyroZ': sensorData.gyroscopeZ,
+          'confidence': detectionEvent.confidence,
+          'riskScore': detectionEvent.getRiskScore(),
+          'metadata': detectionEvent.metadata,
+        },
+      ));
+    } catch (e) {
+      print('Error saving detection event: $e');
+    }
+  }
+
+  void _saveSessionEvent(String eventType, String severity) async {
+    try {
+      final userId = _authBloc.state.user?.id;
+      if (userId == null || _currentSessionId == null) return;
+
+      final position = await _getCurrentPosition();
+      final currentSensorData = state.currentSensorData;
+
+      String mappedEventType = domain.EventType.other.value;
+      String description = eventType;
+
+      // Mapear severidad
+      String mappedSeverity;
+      switch (severity) {
+        case 'LOW':
+          mappedSeverity = domain.EventSeverity.low.value;
+          break;
+        case 'MEDIUM':
+          mappedSeverity = domain.EventSeverity.medium.value;
+          break;
+        case 'HIGH':
+        case 'CRITICAL':
+          mappedSeverity = domain.EventSeverity.high.value;
+          break;
+        default:
+          mappedSeverity = domain.EventSeverity.medium.value;
+      }
+
+      final sensorData = currentSensorData ?? SensorData(
+        id: 'default-sensor-${DateTime.now().millisecondsSinceEpoch}',
+        accelerationX: 0.0,
+        accelerationY: 0.0,
+        accelerationZ: 9.8,
+        gyroscopeX: 0.0,
+        gyroscopeY: 0.0,
+        gyroscopeZ: 0.0,
+        timestamp: DateTime.now(),
+      );
+
+      _sessionBloc.add(session_events.AddSessionEvent(
+        sessionId: _currentSessionId!,
+        userId: userId,
+        eventType: mappedEventType,
+        severity: mappedSeverity,
+        description: description,
+        latitude: position.latitude,
+        longitude: position.longitude,
+        sensorData: {
+          'accelX': sensorData.accelerationX,
+          'accelY': sensorData.accelerationY,
+          'accelZ': sensorData.accelerationZ,
+          'gyroX': sensorData.gyroscopeX,
+          'gyroY': sensorData.gyroscopeY,
+          'gyroZ': sensorData.gyroscopeZ,
+        },
+      ));
+    } catch (e) {
+      print('Error saving session event: $e');
+    }
+  }
+
+  Future<Position> _getCurrentPosition() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return Position(
+        latitude: 6.2442,
+        longitude: -75.5812,
+        timestamp: DateTime.now(),
+        accuracy: 0.0,
+        altitude: 0.0,
+        altitudeAccuracy: 0.0,
+        heading: 0.0,
+        headingAccuracy: 0.0,
+        speed: 0.0,
+        speedAccuracy: 0.0,
+      );
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Position(
+          latitude: 6.2442,
+          longitude: -75.5812,
+          timestamp: DateTime.now(),
+          accuracy: 0.0,
+          altitude: 0.0,
+          altitudeAccuracy: 0.0,
+          heading: 0.0,
+          headingAccuracy: 0.0,
+          speed: 0.0,
+          speedAccuracy: 0.0,
+        );
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      return Position(
+        latitude: 6.2442,
+        longitude: -75.5812,
+        timestamp: DateTime.now(),
+        accuracy: 0.0,
+        altitude: 0.0,
+        altitudeAccuracy: 0.0,
+        heading: 0.0,
+        headingAccuracy: 0.0,
+        speed: 0.0,
+        speedAccuracy: 0.0,
+      );
+    }
+
+    try {
+      return await Geolocator.getCurrentPosition();
+    } catch (e) {
+      return Position(
+        latitude: 6.2442,
+        longitude: -75.5812,
+        timestamp: DateTime.now(),
+        accuracy: 0.0,
+        altitude: 0.0,
+        altitudeAccuracy: 0.0,
+        heading: 0.0,
+        headingAccuracy: 0.0,
+        speed: 0.0,
+        speedAccuracy: 0.0,
+      );
+    }
+  }
+
+  @override
+  Future<void> close() {
+    _sensorService.dispose();
+    _sessionTimer?.cancel();
+    _sensorSubscription?.cancel();
+    _detectionEventSubscription?.cancel();
+    _rawDataSubscription?.cancel();
+    _notificationService.dispose();
+    _sensorProcessor.dispose();
+    _eventAggregator.dispose();
+    return super.close();
+  }
+}

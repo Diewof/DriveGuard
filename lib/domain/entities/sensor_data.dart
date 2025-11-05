@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import '../../core/constants/app_constants.dart';
+import 'dart:math' as math;
 
 class SensorData extends Equatable {
   final String id;
@@ -12,6 +12,7 @@ class SensorData extends Equatable {
   final double gyroscopeZ;
   final bool impactDetected;
   final double vibrationLevel;
+  final bool isCalibrated; // Indica si los datos están calibrados (gravedad removida)
 
   const SensorData({
     required this.id,
@@ -24,24 +25,31 @@ class SensorData extends Equatable {
     required this.gyroscopeZ,
     this.impactDetected = false,
     this.vibrationLevel = 0.0,
+    this.isCalibrated = false,
   });
 
-  bool get isRecklessDriving {
-    final totalAccel = (accelerationX.abs() + accelerationY.abs()) / 2;
-    final totalGyro = (gyroscopeX.abs() + gyroscopeY.abs() + gyroscopeZ.abs()) / 3;
-
-    return totalAccel > AppConstants.recklessAccelThreshold ||
-           totalGyro > AppConstants.recklessGyroThreshold;
+  /// Calcula la magnitud de la aceleración (m/s²)
+  double get accelerationMagnitude {
+    return math.sqrt(
+      accelerationX * accelerationX +
+      accelerationY * accelerationY +
+      accelerationZ * accelerationZ
+    );
   }
 
-  bool get isCrashDetected {
-    final totalAccel = (accelerationX.abs() + accelerationY.abs() + accelerationZ.abs()) / 3;
-    return totalAccel > AppConstants.crashAccelThreshold;
+  /// Calcula la magnitud del giroscopio (°/s)
+  double get gyroscopeMagnitude {
+    return math.sqrt(
+      gyroscopeX * gyroscopeX +
+      gyroscopeY * gyroscopeY +
+      gyroscopeZ * gyroscopeZ
+    );
   }
 
   @override
   List<Object?> get props => [
     id, timestamp, accelerationX, accelerationY, accelerationZ,
-    gyroscopeX, gyroscopeY, gyroscopeZ, impactDetected, vibrationLevel
+    gyroscopeX, gyroscopeY, gyroscopeZ, impactDetected, vibrationLevel,
+    isCalibrated
   ];
 }

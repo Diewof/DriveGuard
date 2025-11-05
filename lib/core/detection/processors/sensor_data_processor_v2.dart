@@ -7,8 +7,8 @@ import '../filters/moving_average_filter.dart';
 import '../filters/noise_reduction_filter.dart';
 import '../detectors/base_detector.dart';
 import '../detectors/harsh_braking_detector_v2.dart';
-import '../detectors/aggressive_acceleration_detector.dart';
-import '../detectors/sharp_turn_detector.dart';
+import '../detectors/aggressive_acceleration_detector_v2.dart';
+import '../detectors/sharp_turn_detector_v2.dart';
 import '../detectors/weaving_detector.dart';
 import '../detectors/rough_road_detector.dart';
 import '../detectors/speed_bump_detector.dart';
@@ -51,13 +51,11 @@ class SensorDataProcessorV2 {
   void _initializeDetectors() {
     _detectors = [
       HarshBrakingDetectorV2(config: _currentConfig),
-      // Los otros detectores seguirán usando la configuración estática por ahora
-      // TODO: Migrar todos a versión V2
-      AggressiveAccelerationDetector(),
-      SharpTurnDetector(),
-      WeavingDetector(),
-      RoughRoadDetector(),
-      SpeedBumpDetector(),
+      AggressiveAccelerationDetectorV2(config: _currentConfig), // ✅ MIGRADO A V2
+      SharpTurnDetectorV2(config: _currentConfig),              // ✅ MIGRADO A V2
+      WeavingDetector(),        // TODO: Migrar a V2
+      RoughRoadDetector(),      // TODO: Migrar a V2
+      SpeedBumpDetector(),      // TODO: Migrar a V2
     ];
   }
 
@@ -84,7 +82,7 @@ class SensorDataProcessorV2 {
 
   /// Procesa una nueva lectura de sensor desde SensorData
   void processSensorData(SensorData data) {
-    // Convertir SensorData a SensorReading
+    // Convertir SensorData a SensorReading, propagando el flag de calibración
     final reading = SensorReading(
       timestamp: data.timestamp,
       accelX: data.accelerationX,
@@ -93,6 +91,7 @@ class SensorDataProcessorV2 {
       gyroX: data.gyroscopeX,
       gyroY: data.gyroscopeY,
       gyroZ: data.gyroscopeZ,
+      isCalibrated: data.isCalibrated, // Propagar flag de calibración
     );
 
     processReading(reading);

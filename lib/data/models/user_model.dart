@@ -1,4 +1,5 @@
 import '../../domain/entities/user.dart';
+import '../../domain/entities/emergency_contact.dart';
 
 class UserModel extends User {
   const UserModel({
@@ -12,6 +13,7 @@ class UserModel extends User {
     super.lastLoginAt,
     super.isEmailVerified,
     super.photoUrl,
+    super.emergencyContacts,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -28,6 +30,11 @@ class UserModel extends User {
           : null,
       isEmailVerified: json['isEmailVerified'] as bool? ?? false,
       photoUrl: json['photoUrl'] as String?,
+      emergencyContacts: json['emergencyContacts'] != null
+          ? (json['emergencyContacts'] as List)
+              .map((e) => EmergencyContact.fromJson(e as Map<String, dynamic>))
+              .toList()
+          : null,
     );
   }
 
@@ -43,6 +50,7 @@ class UserModel extends User {
       'lastLoginAt': lastLoginAt?.toIso8601String(),
       'isEmailVerified': isEmailVerified,
       'photoUrl': photoUrl,
+      'emergencyContacts': emergencyContacts?.map((e) => e.toJson()).toList(),
     };
   }
 
@@ -58,6 +66,7 @@ class UserModel extends User {
       lastLoginAt: user.lastLoginAt,
       isEmailVerified: user.isEmailVerified,
       photoUrl: user.photoUrl,
+      emergencyContacts: user.emergencyContacts,
     );
   }
 
@@ -73,6 +82,7 @@ class UserModel extends User {
     DateTime? lastLoginAt,
     bool? isEmailVerified,
     String? photoUrl,
+    List<EmergencyContact>? emergencyContacts,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -85,6 +95,7 @@ class UserModel extends User {
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
       isEmailVerified: isEmailVerified ?? this.isEmailVerified,
       photoUrl: photoUrl ?? this.photoUrl,
+      emergencyContacts: emergencyContacts ?? this.emergencyContacts,
     );
   }
 }

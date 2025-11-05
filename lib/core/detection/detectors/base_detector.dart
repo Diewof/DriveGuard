@@ -92,8 +92,8 @@ abstract class BaseDetector {
     // Verificar si estamos en cooldown
     if (_state == DetectionState.cooldown) {
       if (DateTime.now().isAfter(_cooldownEndTime!)) {
-        _state = DetectionState.idle;
-        _eventReadings.clear();
+        // CRÍTICO: Llamar a reset() para que los detectores limpien su estado específico
+        reset();
       } else {
         return DetectionResult(state: _state);
       }

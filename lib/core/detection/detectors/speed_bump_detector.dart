@@ -52,20 +52,19 @@ class SpeedBumpDetector extends BaseDetector {
   }
 
   bool _checkFirstPeak(SensorReading current) {
-    // SIMPLIFICADO: Buscar pico positivo en Z con umbral más bajo
-    // Usar el umbral configurado (ahora 2.0 m/s²)
+    // Buscar pico positivo en Z
     if (current.accelZ > SpeedBumpConfig.firstPeakThreshold) {
       _bumpState = SpeedBumpState.waitingValley;
       _firstPeakTime = current.timestamp;
       _firstPeakValue = current.accelZ;
-      return false; // Aún no confirmamos el evento completo
+      return true; // ✅ CORREGIDO: Iniciar detección
     }
     return false;
   }
 
   bool _checkValley(SensorReading current) {
     if (_firstPeakTime == null) {
-      _bumpState = SpeedBumpState.waitingFirstPeak;
+      _resetBumpState();
       return false;
     }
 
@@ -77,14 +76,13 @@ class SpeedBumpDetector extends BaseDetector {
       return false;
     }
 
-    // SIMPLIFICADO: Buscar descenso más permisivo
-    // Permitir valores hasta 2.0 m/s² como "valle"
+    // Buscar descenso (valle)
     if (current.accelZ.abs() <= 2.0 && timeSinceFirstPeak > const Duration(milliseconds: 150)) {
       _bumpState = SpeedBumpState.waitingSecondPeak;
-      return false;
+      return true; // ✅ CORREGIDO: Mantener detección activa
     }
 
-    return false;
+    return true; // ✅ CORREGIDO: Continuar detección mientras buscamos valle
   }
 
   bool _checkSecondPeak(SensorReading current) {
@@ -107,18 +105,24 @@ class SpeedBumpDetector extends BaseDetector {
         _secondPeakValue = current.accelZ;
         _timeBetweenPeaks = timeSinceFirstPeak.inMilliseconds;
         _bumpState = SpeedBumpState.confirming;
-        return true; // Patrón detectado!
+        return true; // Patrón completo detectado
       }
     }
 
-    return false;
+    return true; // ✅ CORREGIDO: Continuar detección mientras buscamos segundo pico
   }
 
   bool _checkStabilization(SensorReading current) {
-    // Mantener el estado confirmado por un tiempo
+    // El patrón ya fue detectado (pico+valle+pico), solo mantener brevemente
+    // para asegurar que el BaseDetector alcance minEventDuration
     if (_firstPeakTime != null) {
       final timeTotal = current.timestamp.difference(_firstPeakTime!);
-      if (timeTotal > SpeedBumpConfig.stabilizationTime) {
+
+      // Terminar después de 500ms desde el inicio del patrón
+      // Esto da tiempo suficiente para confirmar el patrón sin esperar demasiado
+      if (timeTotal > const Duration(milliseconds: 500)) {
+        // NO resetear aquí - el BaseDetector necesita los valores para calculateConfidence()
+        // El reset se hará después en el método reset() del BaseDetector
         return false; // Terminar evento
       }
     }
@@ -214,6 +218,8 @@ class SpeedBumpDetector extends BaseDetector {
   void reset() {
     super.reset();
     _resetBumpState();
+    // ignore: avoid_print
+    print('[$detectorName] 🔄 Estado reseteado - listo para nueva detección');
   }
 
   @override
@@ -223,7 +229,7 @@ class SpeedBumpDetector extends BaseDetector {
   Duration get minEventDuration => SpeedBumpConfig.minTimeBetweenPeaks;
 
   @override
-  Duration get maxEventDuration => SpeedBumpConfig.stabilizationTime;
+  Duration get maxEventDuration => const Duration(milliseconds: 500);
 
   @override
   double get minConfidence => SpeedBumpConfig.minConfidence;

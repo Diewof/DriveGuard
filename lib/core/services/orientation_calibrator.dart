@@ -145,6 +145,7 @@ class OrientationCalibrator {
       gyroscopeZ: rotatedGyro.z,
       impactDetected: raw.impactDetected,
       vibrationLevel: raw.vibrationLevel,
+      isCalibrated: true, // Marcar como calibrado (gravedad removida)
     );
   }
 

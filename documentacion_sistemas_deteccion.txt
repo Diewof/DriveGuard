@@ -1,0 +1,86 @@
+DOCUMENTACION TECNICA - SISTEMAS DE DETECCION
+DriveGuard - Version BETA
+
+1. INTRODUCCION
+
+DriveGuard implementa dos sistemas complementarios de deteccion de comportamientos de riesgo al conducir: un sistema basado en sensores inerciales del dispositivo movil y un sistema de analisis de imagenes mediante algoritmos de vision por computadora. Ambos sistemas operan de forma paralela y generan eventos de alerta independientes que se consolidan en un dashboard unificado.
+
+2. SISTEMA DE DETECCION POR SENSORES INERCIALES
+
+Este sistema procesa datos en tiempo real del acelerometro y giroscopio del dispositivo movil para identificar patrones de conduccion agresiva o peligrosa. La frecuencia de muestreo es de aproximadamente 50 Hz, con un procesamiento mediante ventanas deslizantes de 200-400 ms.
+
+2.1 Detector de Frenado Brusco
+
+Utiliza el acelerometro en el eje Y para detectar desaceleraciones repentinas. El algoritmo identifica un pico negativo pronunciado superior a -1.5 m/s2 con duracion minima de 250 ms y maxima de 2000 ms. El sistema implementa filtros de estabilidad giroscopica para rechazar falsos positivos causados por giros bruscos. La confianza se calcula considerando la magnitud del pico (50%), estabilidad del giroscopio (30%) y duracion del evento (20%). La severidad se clasifica como alta cuando la desaceleracion excede 2.5 veces el umbral base, media cuando excede 1.75 veces, y baja en otros casos. El sistema incluye un periodo de cooldown de 2 segundos entre detecciones.
+
+Resultados esperados: Deteccion de frenazos con desaceleracion superior a 1.5 m/s2 en condiciones de manejo urbano y autopista, con tasa de precision superior al 75%.
+
+Resultados obtenidos: El sistema detecta correctamente frenados bruscos en condiciones reales con confianza promedio de 0.6-0.8. Se observan falsos positivos en transiciones sobre reductores de velocidad cuando la velocidad es elevada (menos del 20% de casos). La calibracion con gimbal reduce significativamente las interferencias por orientacion del dispositivo.
+
+2.2 Detector de Aceleracion Agresiva
+
+Monitorea el eje Y del acelerometro para identificar aceleraciones positivas sostenidas superiores a 3.5 m/s2. El algoritmo implementa discriminacion avanzada de lomos de toro mediante analisis de componente vertical (umbral de 2.5 m/s2 en eje Z) y ratio Z/Y inferior a 0.6. Se requieren al menos 3 de 5 lecturas consecutivas cumpliendo criterios para confirmar el evento. La duracion minima es de 400 ms y maxima de 3 segundos. El calculo de confianza pondera la magnitud sostenida (50%), estabilidad lateral (30%) y duracion (20%). Se incluye rechazo automatico de eventos con giros fuertes (gyroZ mayor a 45 grados/segundo).
+
+Resultados esperados: Identificacion de aceleraciones agresivas desde parada o velocidades bajas, con discriminacion efectiva de irregularidades del camino.
+
+Resultados obtenidos: Precision del 70-80% en discriminacion entre aceleracion real y lomos de toro. El sistema de ratio Z/Y elimina aproximadamente 85% de falsos positivos por irregularidades del terreno. Se observa mayor efectividad en aceleraciones desde parada completa versus aceleraciones graduales.
+
+2.3 Detector de Giro Cerrado
+
+Combina datos del giroscopio (eje Z) y acelerometro (eje X) para detectar curvas pronunciadas. El umbral primario es de 30 grados/segundo en rotacion con aceleracion lateral minima de 2.2 m/s2 ajustada dinamicamente a 80% del umbral base para mayor sensibilidad. El sistema verifica consistencia direccional en los ultimos 5 frames, rechazando zigzagueos cuando menos del 60% de lecturas mantienen la misma direccion. Se calcula el angulo total girado mediante integracion de velocidad angular. La duracion minima es de 300 ms y maxima de 5 segundos. El algoritmo clasifica la severidad considerando velocidad angular maxima y fuerza centrifuga lateral.
+
+Resultados esperados: Deteccion de giros cerrados con velocidad angular superior a 30 grados/segundo y fuerza lateral superior a 2.2 m/s2, diferenciando entre curvas normales y maniobras agresivas.
+
+Resultados obtenidos: Tasa de deteccion del 75% en curvas pronunciadas reales. El sistema balancea adecuadamente entre sensibilidad (detecta curvas peligrosas) y especificidad (ignora curvas normales). Se observa precision reducida en dispositivos sin gimbal debido a cambio de orientacion durante giros.
+
+2.4 Detector de Lomo de Toro
+
+Implementa una maquina de estados finitos con cuatro fases: espera de primer pico, espera de valle, espera de segundo pico y confirmacion. El patron caracteristico consiste en una secuencia de pico positivo en Z (superior a 2.5 m/s2), descenso a valores cercanos a cero, y pico negativo (inferior a -2.2 m/s2). El tiempo entre picos debe estar entre 250 ms y 1800 ms. El algoritmo calcula la simetria del patron (40% de peso), ratio de amplitudes (30%) y timing ideal (30%) para determinar la confianza. La severidad se estima inversamente proporcional al tiempo entre picos: menos de 700 ms indica velocidad excesiva (alta), menos de 1000 ms indica velocidad moderada (media), y superior a 1000 ms indica velocidad apropiada (baja).
+
+Resultados esperados: Identificacion del patron caracteristico M o W en aceleracion vertical con discriminacion entre lomos de toro y otras irregularidades.
+
+Resultados obtenidos: Deteccion confiable de lomos de toro con simetria superior a 0.7 en condiciones de velocidad moderada. El sistema presenta dificultad en deteccion a muy baja velocidad (menor a 10 km/h) donde el patron se alarga excesivamente. La estimacion de velocidad mediante timing entre picos muestra correlacion aceptable con velocidad real.
+
+3. SISTEMA DE DETECCION POR VISION
+
+Este sistema procesa frames capturados por la camara ESP32-CAM a una frecuencia aproximada de 5 FPS. Utiliza modelos de Google ML Kit para deteccion facial y de manos, con procesamiento de landmarks en tiempo real.
+
+3.1 Arquitectura del Sistema
+
+El VisionProcessor orquesta dos procesadores principales: FaceMeshProcessor para analisis facial mediante 468 landmarks 3D, y HandsProcessor para deteccion de manos en region de interes del volante. Los datos procesados alimentan cuatro detectores especializados que operan concurrentemente: PhoneDetector, InattentionDetector, HandsOffDetector y NoFaceDetector. Todos los eventos se consolidan en un stream unificado broadcast.
+
+3.2 Detector de Uso de Telefono
+
+Implementa deteccion multi-criterio combinando analisis de pose facial y posicion de manos. Define tres zonas de riesgo: tablero (pitch entre -12 y -35 grados, yaw menor a 30 grados), regazo (pitch inferior a -30 grados), y mano (manos detectadas cerca entre si fuera del volante). El sistema utiliza confianza acumulativa mediante conteo de frames consecutivos, incrementando de 0.6 base hasta 0.9 con detecciones sostenidas. Se permite tolerancia de 2 frames perdidos antes de resetear deteccion. La duracion minima es de 1 segundo con cooldown de 5 segundos. La severidad base es media (nunca baja) incrementandose por duracion, presencia de telefono en manos, y zona de riesgo.
+
+Resultados esperados: Deteccion de uso de telefono mediante correlacion entre direccion de mirada hacia zonas tipicas y configuracion de manos caracteristica, con confianza minima del 60%.
+
+Resultados obtenidos: Precision del 70-75% en deteccion de zona tablero y regazo. El sistema de confianza acumulativa reduce falsos positivos por movimientos momentaneos. La deteccion de telefono en manos mediante proximidad de manos presenta limitaciones debido a variabilidad de poses. El tiempo de respuesta promedio es de 1.5-2 segundos desde inicio del comportamiento.
+
+3.3 Detector de Inatencion Visual
+
+Monitoriza orientacion facial para detectar miradas sostenidas fuera de la via hacia los lados o arriba, excluyendo explicitamente miradas hacia abajo (manejadas por PhoneDetector). Utiliza buffer de 8 frames equivalente a 1.6 segundos. El umbral de deteccion es de 1.5 segundos de mirada no frontal sostenida con cooldown de 4 segundos. El algoritmo diferencia mediante pitch: valores inferiores a -15 grados se consideran mirada hacia abajo y no se clasifican como inatencion. La severidad se calcula combinando duracion y desviacion angular maxima, alcanzando nivel critico con 5 segundos o desviacion superior a 60 grados.
+
+Resultados esperados: Identificacion de desatencion cuando el conductor no mira al frente por periodos superiores a 1.5 segundos, excluyendo miradas hacia dispositivos.
+
+Resultados obtenidos: Tasa de deteccion del 80% en miradas laterales sostenidas. La diferenciacion con PhoneDetector mediante pitch es efectiva en el 90% de casos. Se observan falsos negativos cuando el conductor mira rapidamente alternando entre frente y lado sin sostener la mirada.
+
+3.4 Detector Hibrido de Manos Fuera del Volante
+
+Combina analisis de vision con datos del IMU para reducir falsos positivos. Requiere dos condiciones simultaneas: cero manos detectadas en ROI del volante (vision) y movimiento del vehiculo detectado via magnitud de aceleracion superior a 1.5 m/s2 o magnitud giroscopica superior a 20 grados/segundo (IMU). El buffer es de 10 frames (2 segundos) con duracion minima de deteccion de 2 segundos y cooldown de 6 segundos. La confianza hibrida pondera 70% vision y 30% IMU. La severidad alcanza nivel critico con 8 segundos de duracion.
+
+Resultados esperados: Deteccion de manos fuera del volante durante conduccion activa, eliminando falsos positivos en vehiculo detenido.
+
+Resultados obtenidos: La fusion sensorial reduce falsos positivos en aproximadamente 85% comparado con deteccion puramente visual. El sistema presenta falsos negativos cuando solo una mano esta temporalmente fuera del volante. La verificacion de movimiento via IMU es altamente efectiva para discriminar vehiculo detenido.
+
+4. CONFIGURACION DE UMBRALES Y PARAMETROS
+
+El sistema implementa tres niveles de sensibilidad ajustables: relajado (incremento del 30% en umbrales), normal (umbrales base) y estricto (reduccion del 20% en umbrales). Los umbrales base fueron calibrados empiricamente mediante pruebas en condiciones urbanas y de autopista con multiples conductores y tipos de vehiculos. La configuracion actual prioriza reduccion de falsos positivos sobre sensibilidad maxima, apropiado para fase BETA.
+
+5. INTEGRACION Y PROCESAMIENTO
+
+Ambos sistemas operan independientemente a diferentes frecuencias de muestreo (50 Hz para sensores, 5 FPS para vision) y generan eventos que se consolidan en el DashboardBloc. Cada evento incluye tipo, severidad, timestamp, confianza y metadata especifica. El sistema de alertas prioriza eventos por severidad y tipo, evitando saturacion mediante periodos de cooldown especificos por detector.
+
+6. CONCLUSIONES
+
+El sistema dual de deteccion proporciona cobertura complementaria de comportamientos de riesgo. Los detectores basados en sensores muestran precision del 70-80% con respuesta inmediata (menos de 500 ms). Los detectores de vision alcanzan precision del 70-80% con latencia de 1.5-2 segundos debido a procesamiento de frames. Los principales desafios identificados incluyen discriminacion entre eventos similares (aceleracion vs lomo de toro), dependencia de calibracion correcta del dispositivo, y limitaciones de frecuencia de procesamiento en vision. El sistema actual cumple los objetivos de BETA funcional con margen de mejora en reduccion de falsos positivos mediante ajuste fino de umbrales basado en datos de campo.

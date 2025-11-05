@@ -43,6 +43,33 @@ class FirebaseAuthDataSourceImpl implements FirebaseAuthDataSource {
   })  : _firebaseAuth = firebaseAuth ?? firebase_auth.FirebaseAuth.instance,
         _firestore = firestore ?? FirebaseFirestore.instance;
 
+  /// Carga los contactos de emergencia desde la sub-colección de Firestore
+  Future<List<EmergencyContact>> _loadEmergencyContacts(String userId) async {
+    try {
+      final contactsSnapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('emergency_contacts')
+          .orderBy('priority')
+          .get();
+
+      return contactsSnapshot.docs.map((doc) {
+        final contactData = doc.data();
+        return EmergencyContact(
+          id: doc.id,
+          name: contactData['name'] ?? '',
+          phoneNumber: contactData['phoneNumber'] ?? '',
+          relationship: contactData['relationship'] ?? '',
+          priority: contactData['priority'] ?? 1,
+          isActive: contactData['isActive'] ?? true,
+        );
+      }).toList();
+    } catch (e) {
+      // Retornar lista vacía en caso de error
+      return [];
+    }
+  }
+
   @override
   Future<UserModel> login({
     required String email,
@@ -79,6 +106,10 @@ class FirebaseAuthDataSourceImpl implements FirebaseAuthDataSource {
       }
 
       final data = userDoc.data()!;
+
+      // Cargar contactos de emergencia
+      final emergencyContacts = await _loadEmergencyContacts(firebaseUser.uid);
+
       return UserModel(
         id: firebaseUser.uid,
         email: firebaseUser.email!,
@@ -90,6 +121,7 @@ class FirebaseAuthDataSourceImpl implements FirebaseAuthDataSource {
         lastLoginAt: DateTime.now(),
         isEmailVerified: firebaseUser.emailVerified,
         photoUrl: data['photoUrl'] ?? firebaseUser.photoURL,
+        emergencyContacts: emergencyContacts.isNotEmpty ? emergencyContacts : null,
       );
     } on firebase_auth.FirebaseAuthException catch (e) {
       throw _mapFirebaseException(e);
@@ -224,6 +256,10 @@ class FirebaseAuthDataSourceImpl implements FirebaseAuthDataSource {
       }
 
       final data = userDoc.data()!;
+
+      // Cargar contactos de emergencia
+      final emergencyContacts = await _loadEmergencyContacts(firebaseUser.uid);
+
       return UserModel(
         id: firebaseUser.uid,
         email: firebaseUser.email!,
@@ -235,6 +271,7 @@ class FirebaseAuthDataSourceImpl implements FirebaseAuthDataSource {
         lastLoginAt: DateTime.now(),
         isEmailVerified: firebaseUser.emailVerified,
         photoUrl: data['photoUrl'] ?? firebaseUser.photoURL,
+        emergencyContacts: emergencyContacts.isNotEmpty ? emergencyContacts : null,
       );
     } catch (e) {
       return null;
@@ -266,6 +303,10 @@ class FirebaseAuthDataSourceImpl implements FirebaseAuthDataSource {
         }
 
         final data = userDoc.data()!;
+
+        // Cargar contactos de emergencia
+        final emergencyContacts = await _loadEmergencyContacts(firebaseUser.uid);
+
         return UserModel(
           id: firebaseUser.uid,
           email: firebaseUser.email!,
@@ -277,6 +318,7 @@ class FirebaseAuthDataSourceImpl implements FirebaseAuthDataSource {
           lastLoginAt: DateTime.now(),
           isEmailVerified: firebaseUser.emailVerified,
           photoUrl: data['photoUrl'] ?? firebaseUser.photoURL,
+          emergencyContacts: emergencyContacts.isNotEmpty ? emergencyContacts : null,
         );
       } catch (e) {
         return UserModel(

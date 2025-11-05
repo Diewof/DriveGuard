@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/services/detection_config_service.dart';
 import '../blocs/dashboard/dashboard_bloc.dart';
+import '../../core/utils/app_colors.dart';
+import '../../core/utils/app_spacing.dart';
+import '../../core/utils/app_typography.dart';
+import '../../core/widgets/common_card.dart';
 
 class DetectionSettingsPage extends StatefulWidget {
-  const DetectionSettingsPage({Key? key}) : super(key: key);
+  const DetectionSettingsPage({super.key});
 
   @override
   State<DetectionSettingsPage> createState() => _DetectionSettingsPageState();
@@ -67,36 +71,47 @@ class _DetectionSettingsPageState extends State<DetectionSettingsPage> {
     }
 
     return Scaffold(
+      backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
-        title: const Text('Configuración de Detección'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: _saveConfiguration,
-            tooltip: 'Guardar',
+        title: Text(
+          'Configuración de Detección',
+          style: AppTypography.h3.copyWith(
+            color: Colors.white,
           ),
-        ],
+        ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppColors.primaryDark, AppColors.primary],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        elevation: AppSpacing.elevation2,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_outlined, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.md),
         children: [
           // Título principal
-          const Text(
-            '🎛️ Sensibilidad de Detección',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+          Text(
+            'Sensibilidad de Detección',
+            style: AppTypography.h2.copyWith(
+              color: AppColors.textPrimary,
             ),
           ),
-          const SizedBox(height: 8),
-          const Text(
+          const SizedBox(height: AppSpacing.xs),
+          Text(
             'Ajusta qué tan sensible es el sistema para detectar eventos de conducción',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
+            style: AppTypography.body.copyWith(
+              color: AppColors.textSecondary,
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.lg),
 
           // Modos de sensibilidad
           _buildModeCard(
@@ -118,37 +133,49 @@ class _DetectionSettingsPageState extends State<DetectionSettingsPage> {
             color: Colors.orange,
           ),
 
-          const SizedBox(height: 32),
-          const Divider(),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.xl),
+          Divider(color: AppColors.divider, height: 1),
+          const SizedBox(height: AppSpacing.lg),
 
           // Configuración de Gimbal
-          const Text(
-            '📱 Configuración de Hardware',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+          Text(
+            'Configuración de Hardware',
+            style: AppTypography.h3.copyWith(
+              color: AppColors.textPrimary,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.md),
 
           _buildGimbalSwitch(),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.lg),
 
           // Información adicional
           _buildInfoCard(),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xl),
 
           // Botón de guardado
-          ElevatedButton.icon(
-            onPressed: _saveConfiguration,
-            icon: const Icon(Icons.save),
-            label: const Text('Guardar Configuración'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              textStyle: const TextStyle(fontSize: 16),
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton.icon(
+              onPressed: _saveConfiguration,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                ),
+              ),
+              icon: const Icon(Icons.save_outlined),
+              label: Text(
+                'Guardar Configuración',
+                style: AppTypography.button.copyWith(
+                  color: Colors.white,
+                ),
+              ),
             ),
           ),
         ],
@@ -164,15 +191,23 @@ class _DetectionSettingsPageState extends State<DetectionSettingsPage> {
   }) {
     final isSelected = _selectedMode == mode;
 
-    return Card(
-      elevation: isSelected ? 8 : 2,
-      color: isSelected ? color.withOpacity(0.1) : null,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: isSelected ? color : Colors.grey.shade300,
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+        border: Border.all(
+          color: isSelected ? color : AppColors.border,
           width: isSelected ? 2 : 1,
         ),
+        boxShadow: [
+          if (!isSelected)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+        ],
       ),
       child: InkWell(
         onTap: () {
@@ -180,9 +215,13 @@ class _DetectionSettingsPageState extends State<DetectionSettingsPage> {
             _selectedMode = mode;
           });
         },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withValues(alpha: 0.05) : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+          ),
           child: Row(
             children: [
               // Radio button
@@ -194,20 +233,24 @@ class _DetectionSettingsPageState extends State<DetectionSettingsPage> {
                     _selectedMode = value!;
                   });
                 },
-                activeColor: color,
+                fillColor: WidgetStateProperty.resolveWith((states) {
+                  return states.contains(WidgetState.selected)
+                      ? color
+                      : AppColors.textSecondary;
+                }),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.sm),
 
               // Icono
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(AppSpacing.sm),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
                 ),
-                child: Icon(icon, color: color, size: 28),
+                child: Icon(icon, color: color, size: 32),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: AppSpacing.md),
 
               // Texto
               Expanded(
@@ -218,27 +261,26 @@ class _DetectionSettingsPageState extends State<DetectionSettingsPage> {
                       children: [
                         Text(
                           mode.displayName.toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 16,
+                          style: AppTypography.body.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: isSelected ? color : Colors.black87,
+                            color: isSelected ? color : AppColors.textPrimary,
                           ),
                         ),
                         if (recommended) ...[
-                          const SizedBox(width: 8),
+                          const SizedBox(width: AppSpacing.xs),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
+                              horizontal: AppSpacing.xs,
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.amber,
-                              borderRadius: BorderRadius.circular(4),
+                              color: AppColors.warning,
+                              borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
                             ),
-                            child: const Text(
+                            child: Text(
                               'RECOMENDADO',
-                              style: TextStyle(
-                                fontSize: 10,
+                              style: AppTypography.caption.copyWith(
+                                fontSize: 9,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                               ),
@@ -250,9 +292,8 @@ class _DetectionSettingsPageState extends State<DetectionSettingsPage> {
                     const SizedBox(height: 4),
                     Text(
                       mode.description,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade700,
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -266,94 +307,113 @@ class _DetectionSettingsPageState extends State<DetectionSettingsPage> {
   }
 
   Widget _buildGimbalSwitch() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: SwitchListTile(
-        value: _useGimbal,
-        onChanged: (value) {
-          setState(() {
-            _useGimbal = value;
-          });
-        },
-        title: const Text(
-          'Usar con Gimbal/Estabilizador',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
+    return CommonCard(
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: _useGimbal
+                  ? AppColors.primary.withValues(alpha: 0.15)
+                  : AppColors.textDisabled.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+            ),
+            child: Icon(
+              Icons.phone_android_outlined,
+              color: _useGimbal ? AppColors.primary : AppColors.textDisabled,
+              size: 32,
+            ),
           ),
-        ),
-        subtitle: const Text(
-          'Activa esta opción si el teléfono está montado en un estabilizador. '
-          'Esto ajusta los umbrales de detección para compensar la estabilización.',
-          style: TextStyle(fontSize: 13),
-        ),
-        secondary: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: _useGimbal ? Colors.blue.withOpacity(0.2) : Colors.grey.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(8),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Usar con Gimbal/Estabilizador',
+                  style: AppTypography.body.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Activa esta opción si el teléfono está montado en un estabilizador. '
+                  'Esto ajusta los umbrales de detección para compensar la estabilización.',
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
           ),
-          child: Icon(
-            Icons.phone_android,
-            color: _useGimbal ? Colors.blue : Colors.grey,
-            size: 28,
+          Switch(
+            value: _useGimbal,
+            onChanged: (value) {
+              setState(() {
+                _useGimbal = value;
+              });
+            },
+            activeTrackColor: AppColors.primary.withValues(alpha: 0.5),
+            thumbColor: WidgetStateProperty.resolveWith((states) {
+              return states.contains(WidgetState.selected)
+                  ? AppColors.primary
+                  : AppColors.textDisabled;
+            }),
           ),
-        ),
+        ],
       ),
     );
   }
 
   Widget _buildInfoCard() {
-    return Card(
-      elevation: 2,
-      color: Colors.blue.shade50,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.info_outline, color: Colors.blue.shade700),
-                const SizedBox(width: 8),
-                Text(
-                  'Información',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade900,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _buildInfoItem(
-              'Modo Leve',
-              'Menos alertas. Ideal para conductores experimentados en carreteras buenas.',
-            ),
-            const SizedBox(height: 8),
-            _buildInfoItem(
-              'Modo Moderado',
-              'Balance perfecto. Recomendado para la mayoría de usuarios.',
-            ),
-            const SizedBox(height: 8),
-            _buildInfoItem(
-              'Modo Estricto',
-              'Máxima detección. Ideal para aprendizaje o entrenamiento.',
-            ),
-            const SizedBox(height: 8),
-            _buildInfoItem(
-              'Gimbal',
-              'Optimiza la detección cuando usas un estabilizador de teléfono.',
-            ),
-          ],
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.2),
+          width: AppSpacing.borderThin,
         ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outlined, color: AppColors.primary, size: 20),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                'Información',
+                style: AppTypography.body.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          _buildInfoItem(
+            'Modo Leve',
+            'Menos alertas. Ideal para conductores experimentados en carreteras buenas.',
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          _buildInfoItem(
+            'Modo Moderado',
+            'Balance perfecto. Recomendado para la mayoría de usuarios.',
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          _buildInfoItem(
+            'Modo Estricto',
+            'Máxima detección. Ideal para aprendizaje o entrenamiento.',
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          _buildInfoItem(
+            'Gimbal',
+            'Optimiza la detección cuando usas un estabilizador de teléfono.',
+          ),
+        ],
       ),
     );
   }
@@ -364,18 +424,17 @@ class _DetectionSettingsPageState extends State<DetectionSettingsPage> {
       children: [
         Text(
           '• ',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.blue.shade700,
+          style: AppTypography.body.copyWith(
+            color: AppColors.primary,
             fontWeight: FontWeight.bold,
           ),
         ),
         Expanded(
           child: RichText(
             text: TextSpan(
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.blue.shade900,
+              style: AppTypography.caption.copyWith(
+                color: AppColors.textPrimary,
+                height: 1.4,
               ),
               children: [
                 TextSpan(

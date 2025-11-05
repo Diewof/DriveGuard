@@ -211,7 +211,10 @@ class HttpServerService {
         _frameController.add(frame);
       }
 
-      print('📸 Frame recibido #$_frameCount (${imageBytes.length} bytes, timestamp: $timestamp)');
+      // Log solo cada 30 frames (cada ~6 segundos @ 5 FPS) para reducir ruido
+      if (_frameCount % 30 == 0) {
+        print('📸 Frame recibido #$_frameCount (${imageBytes.length} bytes, timestamp: $timestamp)');
+      }
 
       // Responder al ESP32
       return Response.ok(

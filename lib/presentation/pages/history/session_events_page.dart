@@ -7,6 +7,8 @@ import '../../blocs/session/session_state.dart';
 import '../../../domain/entities/driving_session.dart';
 import '../../../domain/entities/session_event.dart' as domain;
 import '../../../core/utils/app_colors.dart';
+import '../../../core/utils/app_spacing.dart';
+import '../../../core/utils/app_typography.dart';
 import '../../../core/widgets/common_card.dart';
 import '../../../core/utils/formatters.dart';
 
@@ -23,17 +25,16 @@ class SessionEventsPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Eventos de Sesión',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
+          style: AppTypography.h3.copyWith(
             color: Colors.white,
           ),
         ),
         backgroundColor: AppColors.primaryDark,
-        elevation: 2,
+        elevation: AppSpacing.elevation2,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_outlined, color: Colors.white),
           onPressed: () => context.pop(),
         ),
       ),
@@ -76,33 +77,62 @@ class SessionEventsPage extends StatelessWidget {
 
   Widget _buildSessionHeader() {
     return CommonCard(
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.all(AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Sesión del ${Formatters.formatDate(session.startTime)}',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  'Sesión del ${Formatters.formatDate(session.startTime)}',
+                  style: AppTypography.h4.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: AppSpacing.xs,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusCircular),
+                  border: Border.all(
+                    color: AppColors.primary,
+                    width: AppSpacing.borderThin,
+                  ),
+                ),
+                child: Text(
+                  'Completada',
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.md),
           Row(
             children: [
               Expanded(
                 child: _buildHeaderStat(
                   'Total Eventos',
                   '${session.dailyStats.totalAlerts}',
-                  Icons.warning,
+                  Icons.warning_amber_outlined,
                 ),
               ),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: _buildHeaderStat(
                   'Riesgo',
                   '${session.riskScore.toStringAsFixed(0)}%',
-                  Icons.speed,
+                  Icons.speed_outlined,
                   valueColor: _getRiskColor(session.riskScore),
                 ),
               ),
@@ -121,27 +151,33 @@ class SessionEventsPage extends StatelessWidget {
   }) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: AppColors.textSecondary),
-        const SizedBox(width: 4),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary,
+        Icon(
+          icon,
+          size: 20,
+          color: AppColors.textSecondary,
+        ),
+        const SizedBox(width: AppSpacing.xs),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                ),
               ),
-            ),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: valueColor ?? AppColors.textPrimary,
+              Text(
+                value,
+                style: AppTypography.body.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: valueColor ?? AppColors.textPrimary,
+                  fontSize: 14,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
@@ -150,34 +186,39 @@ class SessionEventsPage extends StatelessWidget {
   Widget _buildEventsList(List<domain.SessionEvent> events) {
     if (events.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.event_note, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            const Text(
-              'No hay eventos registrados',
-              style: TextStyle(
-                fontSize: 18,
-                color: AppColors.textSecondary,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.event_note_outlined,
+                size: 80,
+                color: AppColors.textDisabled,
               ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Esta sesión no registró eventos de conducción',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                'No hay eventos registrados',
+                style: AppTypography.h3.copyWith(
+                  color: AppColors.textPrimary,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Esta sesión no registró eventos de conducción',
+                textAlign: TextAlign.center,
+                style: AppTypography.body.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       itemCount: events.length,
       itemBuilder: (context, index) {
         final event = events[index];
@@ -188,47 +229,46 @@ class SessionEventsPage extends StatelessWidget {
 
   Widget _buildEventCard(domain.SessionEvent event, int index) {
     return CommonCard(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
       child: InkWell(
         onTap: () => _showEventDetails(event),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Container(
-                    width: 32,
-                    height: 32,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
-                      color: _getEventTypeColor(event.eventType).withAlpha(30),
-                      borderRadius: BorderRadius.circular(8),
+                      color: _getEventTypeColor(event.eventType).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
                     ),
                     child: Icon(
                       _getEventTypeIcon(event.eventType),
                       color: _getEventTypeColor(event.eventType),
-                      size: 18,
+                      size: 24,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           _getEventTypeTitle(event.eventType),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                          style: AppTypography.body.copyWith(
+                            fontWeight: FontWeight.bold,
                             color: AppColors.textPrimary,
                           ),
                         ),
+                        const SizedBox(height: 2),
                         Text(
                           event.description,
-                          style: const TextStyle(
-                            fontSize: 14,
+                          style: AppTypography.caption.copyWith(
                             color: AppColors.textSecondary,
                           ),
                         ),
@@ -236,42 +276,50 @@ class SessionEventsPage extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm,
+                      vertical: AppSpacing.xs,
+                    ),
                     decoration: BoxDecoration(
-                      color: _getSeverityColor(event.severity).withAlpha(30),
-                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusCircular),
+                      border: Border.all(
+                        color: _getSeverityColor(event.severity),
+                        width: AppSpacing.borderThin,
+                      ),
                     ),
                     child: Text(
                       _getSeverityText(event.severity),
-                      style: TextStyle(
-                        fontSize: 12,
+                      style: AppTypography.caption.copyWith(
                         fontWeight: FontWeight.w600,
                         color: _getSeverityColor(event.severity),
+                        fontSize: 11,
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.sm),
               Row(
                 children: [
-                  Icon(Icons.access_time, size: 16, color: Colors.grey[400]),
+                  Icon(Icons.access_time_outlined, size: 16, color: AppColors.textSecondary),
                   const SizedBox(width: 4),
                   Text(
                     Formatters.formatTime(event.timestamp),
-                    style: const TextStyle(
-                      fontSize: 12,
+                    style: AppTypography.caption.copyWith(
                       color: AppColors.textSecondary,
                     ),
                   ),
                   const SizedBox(width: 16),
-                  Icon(Icons.location_on, size: 16, color: Colors.grey[400]),
+                  Icon(Icons.location_on_outlined, size: 16, color: AppColors.textSecondary),
                   const SizedBox(width: 4),
-                  Text(
-                    '${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
+                  Expanded(
+                    child: Text(
+                      '${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}',
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -288,9 +336,9 @@ class SessionEventsPage extends StatelessWidget {
       case 'DISTRACTION':
         return AppColors.warning;
       case 'RECKLESS_DRIVING':
-        return AppColors.error;
+        return AppColors.danger;
       case 'EMERGENCY':
-        return AppColors.error;
+        return AppColors.danger;
       default:
         return AppColors.textSecondary;
     }
@@ -329,7 +377,7 @@ class SessionEventsPage extends StatelessWidget {
       case 'MEDIUM':
         return AppColors.warning;
       case 'HIGH':
-        return AppColors.error;
+        return AppColors.danger;
       default:
         return AppColors.textSecondary;
     }
@@ -351,7 +399,7 @@ class SessionEventsPage extends StatelessWidget {
   Color _getRiskColor(double riskScore) {
     if (riskScore < 30) return AppColors.success;
     if (riskScore < 60) return AppColors.warning;
-    return AppColors.error;
+    return AppColors.danger;
   }
 
   void _showEventDetails(domain.SessionEvent event) {

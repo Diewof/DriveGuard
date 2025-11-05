@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../core/utils/app_colors.dart';
+import '../../../core/utils/app_typography.dart';
+import '../../../core/utils/app_spacing.dart';
 
 class AuthTextField extends StatefulWidget {
   final String label;
@@ -39,13 +42,9 @@ class _AuthTextFieldState extends State<AuthTextField> {
       children: [
         Text(
           widget.label,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-            color: Colors.black87,
-          ),
+          style: AppTypography.label,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.sm),
         TextFormField(
           controller: widget.controller,
           obscureText: widget.isPassword ? _obscureText : false,
@@ -53,15 +52,28 @@ class _AuthTextFieldState extends State<AuthTextField> {
           validator: widget.validator,
           enabled: widget.enabled,
           inputFormatters: widget.inputFormatters,
+          style: AppTypography.body,
           decoration: InputDecoration(
             hintText: widget.hint,
-            prefixIcon: widget.prefixIcon,
+            hintStyle: AppTypography.body.copyWith(
+              color: AppColors.textDisabled,
+            ),
+            prefixIcon: widget.prefixIcon != null
+                ? IconTheme(
+                    data: IconThemeData(
+                      color: AppColors.textSecondary,
+                      size: AppSpacing.iconSmall,
+                    ),
+                    child: widget.prefixIcon!,
+                  )
+                : null,
             suffixIcon: widget.isPassword
                 ? IconButton(
                     icon: Icon(
-                      _obscureText ? Icons.visibility : Icons.visibility_off,
-                      color: Colors.grey,
+                      _obscureText ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                      size: AppSpacing.iconSmall,
                     ),
+                    color: AppColors.textSecondary,
                     onPressed: () {
                       setState(() {
                         _obscureText = !_obscureText;
@@ -70,30 +82,42 @@ class _AuthTextFieldState extends State<AuthTextField> {
                   )
                 : null,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.grey),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              borderSide: const BorderSide(color: AppColors.border),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.grey),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              borderSide: const BorderSide(color: AppColors.border),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.blue[900]!, width: 2),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              borderSide: const BorderSide(
+                color: AppColors.primary,
+                width: AppSpacing.borderMedium,
+              ),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.red),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              borderSide: const BorderSide(color: AppColors.danger),
             ),
             focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.red, width: 2),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              borderSide: const BorderSide(
+                color: AppColors.danger,
+                width: AppSpacing.borderMedium,
+              ),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              borderSide: const BorderSide(color: AppColors.divider),
             ),
             filled: true,
-            fillColor: widget.enabled ? Colors.grey[50] : Colors.grey[100],
+            fillColor: widget.enabled
+                ? AppColors.backgroundLight
+                : AppColors.border.withValues(alpha: 0.3),
             contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
+              horizontal: AppSpacing.paddingCard,
+              vertical: AppSpacing.paddingCard,
             ),
           ),
         ),

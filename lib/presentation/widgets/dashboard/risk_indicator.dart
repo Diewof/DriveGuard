@@ -1,5 +1,15 @@
 import 'package:flutter/material.dart';
+import '../../../core/utils/app_colors.dart';
+import '../../../core/utils/app_spacing.dart';
+import '../../../core/utils/app_typography.dart';
+import '../../../core/widgets/common_card.dart';
 
+/// Indicador de riesgo - Score de conducción
+///
+/// Aplica sistema semafórico DriveGuard:
+/// - Verde (0-30): Seguro
+/// - Amarillo (30-60): Advertencia
+/// - Rojo (60-100): Peligro
 class RiskIndicator extends StatelessWidget {
   final double riskScore;
 
@@ -10,82 +20,97 @@ class RiskIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = AppColors.getRiskColor(riskScore);
+
     return GestureDetector(
       onTap: () => _showTooltip(context),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 5,
-              offset: const Offset(0, 2),
+      child: CommonCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Score de Riesgo',
+                  style: AppTypography.label.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                Icon(
+                  Icons.analytics_outlined,
+                  color: AppColors.textDisabled,
+                  size: AppSpacing.iconSmall,
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            // Score principal
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  riskScore.toStringAsFixed(0),
+                  style: AppTypography.displayMedium.copyWith(
+                    color: color,
+                    height: 1.0,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4, left: 2),
+                  child: Text(
+                    '/100',
+                    style: AppTypography.h4.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            // Barra de progreso
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+              child: LinearProgressIndicator(
+                value: riskScore / 100,
+                backgroundColor: AppColors.border,
+                valueColor: AlwaysStoppedAnimation<Color>(color),
+                minHeight: 8,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            // Etiqueta de estado
+            Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  _getRiskLabel(riskScore),
+                  style: AppTypography.caption.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ],
-        ),
-        child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Score de Riesgo',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              Icon(
-                Icons.analytics,
-                color: Colors.grey[400],
-                size: 20,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                riskScore.toStringAsFixed(0),
-                style: TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                  color: _getRiskColor(riskScore),
-                ),
-              ),
-              const Text(
-                '/100',
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          LinearProgressIndicator(
-            value: riskScore / 100,
-            backgroundColor: Colors.grey[200],
-            valueColor: AlwaysStoppedAnimation<Color>(
-              _getRiskColor(riskScore),
-            ),
-            minHeight: 6,
-          ),
-        ],
         ),
       ),
     );
   }
 
-  Color _getRiskColor(double score) {
-    if (score < 30) return Colors.green;
-    if (score < 60) return Colors.orange;
-    return Colors.red;
+  String _getRiskLabel(double score) {
+    if (score < 30) return 'Conducción segura';
+    if (score < 60) return 'Riesgo moderado';
+    return 'Alto riesgo';
   }
 
   void _showTooltip(BuildContext context) {
@@ -93,8 +118,14 @@ class RiskIndicator extends StatelessWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Score de Riesgo'),
-          content: const Text(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+          ),
+          title: Text(
+            'Score de Riesgo',
+            style: AppTypography.h3,
+          ),
+          content: Text(
             'El Score de Riesgo es una medición en tiempo real (0-100) que evalúa la seguridad de tu conducción basándose en:\n\n'
             '• Aceleración: Detecta frenadas y acelerones bruscos\n'
             '• Rotación: Identifica giros agresivos o maniobras peligrosas\n'
@@ -102,11 +133,20 @@ class RiskIndicator extends StatelessWidget {
             'Score menor a 30: Conducción segura\n'
             'Score 30-60: Riesgo moderado\n'
             'Score mayor a 60: Alto riesgo',
+            style: AppTypography.body,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Entendido'),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primary,
+              ),
+              child: Text(
+                'Entendido',
+                style: AppTypography.button.copyWith(
+                  color: AppColors.primary,
+                ),
+              ),
             ),
           ],
         );

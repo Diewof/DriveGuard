@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'emergency_contact.dart';
 
 class User extends Equatable {
   final String id;
@@ -11,6 +12,7 @@ class User extends Equatable {
   final DateTime? lastLoginAt;
   final bool isEmailVerified;
   final String? photoUrl;
+  final List<EmergencyContact>? emergencyContacts;
 
   const User({
     required this.id,
@@ -23,6 +25,7 @@ class User extends Equatable {
     this.lastLoginAt,
     this.isEmailVerified = false,
     this.photoUrl,
+    this.emergencyContacts,
   });
 
   User copyWith({
@@ -36,6 +39,7 @@ class User extends Equatable {
     DateTime? lastLoginAt,
     bool? isEmailVerified,
     String? photoUrl,
+    List<EmergencyContact>? emergencyContacts,
   }) {
     return User(
       id: id ?? this.id,
@@ -48,6 +52,7 @@ class User extends Equatable {
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
       isEmailVerified: isEmailVerified ?? this.isEmailVerified,
       photoUrl: photoUrl ?? this.photoUrl,
+      emergencyContacts: emergencyContacts ?? this.emergencyContacts,
     );
   }
 
@@ -63,5 +68,6 @@ class User extends Equatable {
         lastLoginAt,
         isEmailVerified,
         photoUrl,
+        emergencyContacts,
       ];
 }

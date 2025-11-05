@@ -111,7 +111,15 @@ class CameraStreamBloc extends Bloc<CameraStreamEvent, CameraStreamState> {
   @override
   Future<void> close() async {
     await _frameSubscription?.cancel();
-    // No detenemos el servidor aquí para que siga corriendo si el usuario cierra y abre
+
+    // IMPORTANTE: Detener el servidor HTTP cuando se cierra el BLoC
+    // Esto evita conflictos cuando se intenta iniciar el servidor desde otra página
+    if (_cameraRepository.isServerRunning) {
+      await _cameraRepository.stopServer();
+      // ignore: avoid_print
+      print('[CameraStreamBloc] 🛑 Servidor HTTP detenido al cerrar BLoC');
+    }
+
     return super.close();
   }
 }

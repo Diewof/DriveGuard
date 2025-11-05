@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../core/utils/app_colors.dart';
+import '../../../core/utils/app_typography.dart';
+import '../../../core/utils/app_spacing.dart';
 
 class AuthButton extends StatelessWidget {
   final String text;
@@ -20,20 +23,25 @@ class AuthButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = backgroundColor ?? Colors.blue[900]!;
+    final primaryColor = backgroundColor ?? AppColors.primary;
     final buttonTextColor = textColor ?? (isOutlined ? primaryColor : Colors.white);
 
     return SizedBox(
       width: double.infinity,
-      height: 56,
+      height: AppSpacing.buttonHeightLarge,
       child: isOutlined
           ? OutlinedButton(
               onPressed: isLoading ? null : onPressed,
               style: OutlinedButton.styleFrom(
-                side: BorderSide(color: primaryColor, width: 2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                  color: primaryColor,
+                  width: AppSpacing.borderMedium,
                 ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                ),
+                foregroundColor: primaryColor,
+                disabledForegroundColor: AppColors.textDisabled,
               ),
               child: _buildButtonContent(buttonTextColor),
             )
@@ -42,10 +50,11 @@ class AuthButton extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryColor,
                 foregroundColor: Colors.white,
+                disabledBackgroundColor: AppColors.textDisabled,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
                 ),
-                elevation: 2,
+                elevation: AppSpacing.elevation2,
               ),
               child: _buildButtonContent(buttonTextColor),
             ),
@@ -54,23 +63,21 @@ class AuthButton extends StatelessWidget {
 
   Widget _buildButtonContent(Color textColor) {
     if (isLoading) {
-      return const SizedBox(
-        width: 24,
-        height: 24,
+      return SizedBox(
+        width: AppSpacing.iconMedium,
+        height: AppSpacing.iconMedium,
         child: CircularProgressIndicator(
-          strokeWidth: 2,
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          strokeWidth: AppSpacing.borderMedium,
+          valueColor: AlwaysStoppedAnimation<Color>(
+            isOutlined ? textColor : Colors.white,
+          ),
         ),
       );
     }
 
     return Text(
       text,
-      style: TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: textColor,
-      ),
+      style: AppTypography.buttonLarge.copyWith(color: textColor),
     );
   }
 }

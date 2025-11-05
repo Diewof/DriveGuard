@@ -20,6 +20,15 @@ class DashboardSensorDataReceived extends DashboardEvent {
   List<Object?> get props => [sensorData];
 }
 
+class DashboardDetectionEventReceived extends DashboardEvent {
+  final DetectionEvent detectionEvent;
+
+  const DashboardDetectionEventReceived(this.detectionEvent);
+
+  @override
+  List<Object?> get props => [detectionEvent];
+}
+
 class DashboardTriggerAlert extends DashboardEvent {
   final String type;
   final String severity;
@@ -37,4 +46,26 @@ class DashboardSessionTick extends DashboardEvent {}
 
 class DashboardEmergencyActivated extends DashboardEvent {}
 
-class _DeviceConnected extends DashboardEvent {}
+class DashboardEmergencyCancelled extends DashboardEvent {}
+
+class DashboardEmergencyConfirmed extends DashboardEvent {}
+
+class DashboardEmergencyCountdownTick extends DashboardEvent {
+  final int countdown;
+
+  const DashboardEmergencyCountdownTick(this.countdown);
+
+  @override
+  List<Object?> get props => [countdown];
+}
+
+class DashboardConfigurationChanged extends DashboardEvent {}
+
+class _DeviceConnected extends DashboardEvent {
+  final String esp32Ip;
+
+  const _DeviceConnected({required this.esp32Ip});
+
+  @override
+  List<Object?> get props => [esp32Ip];
+}

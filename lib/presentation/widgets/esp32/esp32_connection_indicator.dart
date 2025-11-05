@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../../core/utils/app_colors.dart';
+import '../../../core/utils/app_typography.dart';
+import '../../../core/utils/app_spacing.dart';
+import '../../../core/widgets/common_card.dart';
 
 /// Estados de conexión del ESP32-CAM
 enum Esp32ConnectionStatus {
@@ -27,38 +31,33 @@ class Esp32ConnectionIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
+    return CommonCard(
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: EdgeInsets.all(AppSpacing.paddingSmall),
         child: Row(
-          children: [
-            _buildStatusIcon(),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    _getStatusTitle(),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
+        children: [
+          _buildStatusIcon(),
+          SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _getStatusTitle(),
+                  style: AppTypography.h4.copyWith(fontSize: 14),
+                ),
+                SizedBox(height: AppSpacing.xs),
+                Text(
+                  _getStatusMessage(),
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _getStatusMessage(),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
+        ],
         ),
       ),
     );
@@ -67,26 +66,26 @@ class Esp32ConnectionIndicator extends StatelessWidget {
   Widget _buildStatusIcon() {
     switch (status) {
       case Esp32ConnectionStatus.waiting:
-        return const _PulsingIndicator(
-          color: Colors.orange,
-          icon: Icons.wifi_find,
+        return _PulsingIndicator(
+          color: AppColors.warning,
+          icon: Icons.wifi_find_outlined,
         );
       case Esp32ConnectionStatus.detected:
-        return const _PulsingIndicator(
-          color: Colors.yellow,
-          icon: Icons.sync,
+        return _PulsingIndicator(
+          color: AppColors.moderate,
+          icon: Icons.sync_outlined,
         );
       case Esp32ConnectionStatus.connected:
-        return const Icon(
-          Icons.check_circle,
-          color: Colors.green,
-          size: 32,
+        return Icon(
+          Icons.check_circle_outlined,
+          color: AppColors.success,
+          size: AppSpacing.iconLarge,
         );
       case Esp32ConnectionStatus.error:
-        return const Icon(
-          Icons.error,
-          color: Colors.red,
-          size: 32,
+        return Icon(
+          Icons.error_outline,
+          color: AppColors.danger,
+          size: AppSpacing.iconLarge,
         );
     }
   }

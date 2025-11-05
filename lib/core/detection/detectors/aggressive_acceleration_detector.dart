@@ -22,19 +22,45 @@ class AggressiveAccelerationDetector extends BaseDetector {
 
   @override
   bool checkConditions(SensorReading current, SensorStatistics stats) {
-    // Condición primaria: aceleración fuerte en Y (positiva) - SIMPLIFICADO
+    // Condición primaria: aceleración fuerte en Y (positiva)
     if (current.accelY < AggressiveAccelConfig.accelYThreshold) {
       return false;
     }
 
-    // SIMPLIFICADO: Eliminamos las condiciones secundarias restrictivas
-    // - No verificamos deltaZ (puede no cambiar mucho con teléfono en soporte)
-    // - No requerimos mantener 2.5 m/s² (umbral es 1.0, no tiene sentido pedir 2.5)
-    // - Permitimos aceleración lateral moderada (puede ocurrir en aceleración real)
+    // CRÍTICO: Rechazar si hay componente vertical fuerte (indica lomo de toro, no aceleración)
+    // Los lomos causan picos en Z, la aceleración real es principalmente en Y
+    if (current.accelZ.abs() > AggressiveAccelConfig.verticalComponentThreshold) {
+      return false; // Es un lomo de toro, no aceleración agresiva
+    }
 
-    // Solo rechazar si hay giro muy fuerte (es una curva, no aceleración recta)
+    // MEJORADO: Rechazar si el ratio Z/Y es alto (indica lomo más que aceleración)
+    // En aceleración real: Y >> Z
+    // En lomo de toro: Y ≈ Z (ambos suben juntos)
+    final ratioZY = current.accelZ.abs() / (current.accelY.abs() + 0.1); // +0.1 evita división por 0
+    if (ratioZY > 0.6) {
+      // Si Z es más del 60% de Y, probablemente es un lomo
+      return false;
+    }
+
+    // Rechazar si hay giro fuerte (es una curva, no aceleración recta)
     if (current.gyroZ.abs() > AggressiveAccelConfig.gyroStabilityThreshold) {
       return false;
+    }
+
+    // Verificar que el evento se sostenga (no sea un pico instantáneo de lomo)
+    if (currentState == DetectionState.potential || currentState == DetectionState.confirmed) {
+      // Contar cuántas lecturas recientes tienen accelY alto Y accelZ bajo
+      final recentHighY = recentReadings
+          .takeLast(5)
+          .where((r) =>
+            r.accelY >= AggressiveAccelConfig.accelYThreshold &&
+            r.accelZ.abs() < AggressiveAccelConfig.verticalComponentThreshold)
+          .length;
+
+      // Si menos de 3 de las últimas 5 lecturas cumplen, probablemente es ruido/lomo
+      if (recentHighY < 3) {
+        return false;
+      }
     }
 
     return true;
@@ -139,4 +165,11 @@ class AggressiveAccelerationDetector extends BaseDetector {
 
   @override
   double get minConfidence => AggressiveAccelConfig.minConfidence;
+}
+
+extension _IterableExtension<T> on Iterable<T> {
+  Iterable<T> takeLast(int count) {
+    if (length <= count) return this;
+    return skip(length - count);
+  }
 }

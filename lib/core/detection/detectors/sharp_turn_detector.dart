@@ -22,14 +22,35 @@ class SharpTurnDetector extends BaseDetector {
 
   @override
   bool checkConditions(SensorReading current, SensorStatistics stats) {
+    final absGyroZ = current.gyroZ.abs();
+    final absAccelX = current.accelX.abs();
+
+    // CRÍTICO: Rechazar explícitamente si la rotación es demasiado baja (línea recta)
+    if (absGyroZ < SharpTurnConfig.straightLineGyroMax) {
+      return false; // Línea recta o curva muy suave, no es giro cerrado
+    }
+
     // Condición primaria: rotación fuerte en Z
-    if (current.gyroZ.abs() < SharpTurnConfig.gyroZThreshold) {
+    if (absGyroZ < SharpTurnConfig.gyroZThreshold) {
       return false;
     }
 
-    // Condición secundaria: fuerza centrífuga lateral
-    if (current.accelX.abs() < SharpTurnConfig.accelXThreshold) {
+    // Condición secundaria: fuerza centrífuga lateral significativa
+    if (absAccelX < SharpTurnConfig.accelXThreshold) {
       return false;
+    }
+
+    // NUEVO: Verificar correlación entre rotación y fuerza lateral
+    // En un giro real, debe haber fuerza lateral proporcional a la rotación
+    // Ratio bajo indica movimiento del teléfono sin giro real del vehículo
+    final gyroAccelRatio = absAccelX / (absGyroZ + 1.0); // +1 para evitar división por 0
+    if (gyroAccelRatio < SharpTurnConfig.minGyroAccelRatio) {
+      return false; // Rotación sin suficiente fuerza lateral = movimiento del teléfono
+    }
+
+    // Verificar que aceleración en Y sea baja (no es aceleración/frenado)
+    if (current.accelY.abs() > 3.0) {
+      return false; // Es aceleración o frenado, no giro
     }
 
     // Verificar consistencia de dirección (no zigzagueo)
@@ -54,26 +75,34 @@ class SharpTurnDetector extends BaseDetector {
 
     double confidence = 0.0;
 
-    // Factor 1: Magnitud de la rotación (40%)
     final avgGyroZ = eventReadings.map((r) => r.gyroZ.abs()).reduce((a, b) => a + b) /
                      eventReadings.length;
-    final rotationScore = ((avgGyroZ - 35.0) / 30.0).clamp(0.0, 1.0);
-    confidence += rotationScore * 0.4;
+    final avgAccelX = eventReadings.map((r) => r.accelX.abs()).reduce((a, b) => a + b) /
+                      eventReadings.length;
 
-    // Factor 2: Estabilidad de la rotación (30%)
+    // Factor 1: Magnitud de la rotación (35%)
+    // Ajustado para umbrales nuevos: 45°/s es el mínimo
+    final rotationScore = ((avgGyroZ - SharpTurnConfig.gyroZThreshold) / 40.0).clamp(0.0, 1.0);
+    confidence += rotationScore * 0.35;
+
+    // Factor 2: Correlación gyro-accel (25%)
+    // En un giro real debe haber buena correlación
+    final avgRatio = avgAccelX / (avgGyroZ + 1.0);
+    final correlationScore = ((avgRatio - SharpTurnConfig.minGyroAccelRatio) / 0.5).clamp(0.0, 1.0);
+    confidence += correlationScore * 0.25;
+
+    // Factor 3: Estabilidad de la rotación (20%)
     final gyroZValues = eventReadings.map((r) => r.gyroZ.abs()).toList();
     final mean = gyroZValues.reduce((a, b) => a + b) / gyroZValues.length;
     final variance = gyroZValues.map((v) => pow(v - mean, 2)).reduce((a, b) => a + b) /
                      gyroZValues.length;
     final stdDev = sqrt(variance);
-    final stabilityScore = (1.0 - (stdDev / 20.0)).clamp(0.0, 1.0);
-    confidence += stabilityScore * 0.3;
+    final stabilityScore = (1.0 - (stdDev / SharpTurnConfig.gyroStdDevThreshold)).clamp(0.0, 1.0);
+    confidence += stabilityScore * 0.2;
 
-    // Factor 3: Fuerza lateral sostenida (30%)
-    final avgAccelX = eventReadings.map((r) => r.accelX.abs()).reduce((a, b) => a + b) /
-                      eventReadings.length;
-    final lateralScore = ((avgAccelX - 3.0) / 3.0).clamp(0.0, 1.0);
-    confidence += lateralScore * 0.3;
+    // Factor 4: Fuerza lateral sostenida (20%)
+    final lateralScore = ((avgAccelX - SharpTurnConfig.accelXThreshold) / 3.0).clamp(0.0, 1.0);
+    confidence += lateralScore * 0.2;
 
     return confidence.clamp(0.0, 1.0);
   }

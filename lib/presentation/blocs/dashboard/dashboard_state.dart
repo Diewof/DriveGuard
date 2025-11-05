@@ -11,6 +11,13 @@ class DashboardState extends Equatable {
   final int distractionCount;
   final int recklessCount;
   final int emergencyCount;
+  // ESP32-CAM connection info
+  final String? esp32Ip;
+  final String? serverIp;
+  final int? serverPort;
+  // Emergency confirmation state
+  final bool showEmergencyConfirmation;
+  final int emergencyCountdown;
 
   const DashboardState({
     this.isMonitoring = false,
@@ -23,6 +30,11 @@ class DashboardState extends Equatable {
     this.distractionCount = 0,
     this.recklessCount = 0,
     this.emergencyCount = 0,
+    this.esp32Ip,
+    this.serverIp,
+    this.serverPort,
+    this.showEmergencyConfirmation = false,
+    this.emergencyCountdown = 5,
   });
 
   DashboardState copyWith({
@@ -36,6 +48,11 @@ class DashboardState extends Equatable {
     int? distractionCount,
     int? recklessCount,
     int? emergencyCount,
+    String? esp32Ip,
+    String? serverIp,
+    int? serverPort,
+    bool? showEmergencyConfirmation,
+    int? emergencyCountdown,
   }) {
     return DashboardState(
       isMonitoring: isMonitoring ?? this.isMonitoring,
@@ -48,6 +65,11 @@ class DashboardState extends Equatable {
       distractionCount: distractionCount ?? this.distractionCount,
       recklessCount: recklessCount ?? this.recklessCount,
       emergencyCount: emergencyCount ?? this.emergencyCount,
+      esp32Ip: esp32Ip ?? this.esp32Ip,
+      serverIp: serverIp ?? this.serverIp,
+      serverPort: serverPort ?? this.serverPort,
+      showEmergencyConfirmation: showEmergencyConfirmation ?? this.showEmergencyConfirmation,
+      emergencyCountdown: emergencyCountdown ?? this.emergencyCountdown,
     );
   }
 
@@ -63,5 +85,10 @@ class DashboardState extends Equatable {
         distractionCount,
         recklessCount,
         emergencyCount,
+        esp32Ip,
+        serverIp,
+        serverPort,
+        showEmergencyConfirmation,
+        emergencyCountdown,
       ];
 }

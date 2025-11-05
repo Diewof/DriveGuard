@@ -1,19 +1,19 @@
 /// Configuración de umbrales para detección de frenado brusco
-/// AJUSTADO PARA PRUEBAS CON TELÉFONO (valores MÁS sensibles)
+/// AJUSTADO para balance entre sensibilidad y precisión
 class HarshBrakingConfig {
-  // Umbrales primarios - MUY REDUCIDOS para mayor sensibilidad
-  static const double accelYThreshold = -1.0; // m/s² (era -2.0, ahora MÁS sensible)
+  // Umbrales primarios - Ajuste leve para reducir falsos positivos
+  static const double accelYThreshold = -1.5; // m/s² (incrementado levemente de -1.0)
   static const double accelZChangeMin = 0.2;  // m/s² (mantener)
   static const double accelZChangeMax = 5.0;  // m/s² (mantener amplio rango)
 
   // Umbrales temporales
-  static const Duration minEventDuration = Duration(milliseconds: 200); // BETA: Reducido para calibración
+  static const Duration minEventDuration = Duration(milliseconds: 250); // Incrementado levemente
   static const Duration maxEventDuration = Duration(milliseconds: 2000); // Aumentado de 1500
   static const Duration cooldownPeriod = Duration(seconds: 2);
 
-  // Umbrales de confianza - AÚN MÁS PERMISIVO
+  // Umbrales de confianza
   static const double gyroStabilityThreshold = 80.0; // °/s (mantener muy permisivo)
-  static const double minConfidence = 0.15; // Reducido de 0.25 para detectar más eventos
+  static const double minConfidence = 0.18; // Incrementado levemente de 0.15
 
   // Umbrales de severidad
   static const double mediumThreshold = -2.5; // Reducido de -3.5 (más sensible)
@@ -21,39 +21,50 @@ class HarshBrakingConfig {
 }
 
 /// Configuración de umbrales para detección de aceleración agresiva
-/// AJUSTADO PARA PRUEBAS CON TELÉFONO (valores MÁS sensibles)
+/// AJUSTADO v2.1 - Mejor discriminación de lomos de toro
 class AggressiveAccelConfig {
-  static const double accelYThreshold = 1.0;  // m/s² (era 2.0, ahora MÁS sensible)
+  static const double accelYThreshold = 3.5;  // m/s² (incrementado de 2.8 para evitar más lomos)
   static const double accelZChangeMin = -3.0; // m/s² (mantener)
   static const double accelZChangeMax = -0.5; // m/s² (mantener)
 
-  static const Duration minEventDuration = Duration(milliseconds: 200); // BETA: Reducido para calibración
+  // Umbral para detectar componente vertical fuerte (posible lomo)
+  static const double verticalComponentThreshold = 2.5; // m/s² en Z (más sensible que 3.0)
+
+  static const Duration minEventDuration = Duration(milliseconds: 400); // Incrementado a 400ms
   static const Duration maxEventDuration = Duration(seconds: 3);
   static const Duration cooldownPeriod = Duration(milliseconds: 1500);
 
-  static const double gyroStabilityThreshold = 60.0; // °/s (mantener permisivo)
-  static const double minConfidence = 0.15; // Reducido de 0.30 para detectar más eventos
+  static const double gyroStabilityThreshold = 45.0; // °/s (más estricto que 50.0)
+  static const double minConfidence = 0.25; // Incrementado de 0.20 para mayor precisión
 
   // Umbrales de severidad
-  static const double mediumThreshold = 2.5; // Reducido de 3.5 (más sensible)
-  static const double highThreshold = 4.0;   // Reducido de 5.0 (más sensible)
+  static const double mediumThreshold = 4.0; // Incrementado de 3.5
+  static const double highThreshold = 5.5;   // Incrementado de 5.0
 }
 
-/// Configuración de umbrales para detección de giro cerrado
-/// AJUSTADO PARA PRUEBAS CON TELÉFONO (valores MÁS sensibles)
+/// Configuración de umbrales para detección de giro cerrado a alta velocidad
+/// v2.1 - Punto medio balanceado entre 15°/s y 45°/s
 class SharpTurnConfig {
-  static const double gyroZThreshold = 15.0;      // °/s (era 25.0, ahora MÁS sensible)
-  static const double accelXThreshold = 1.5;      // m/s² (era 2.0, ahora MÁS sensible)
-  static const Duration minTurnDuration = Duration(milliseconds: 200); // BETA: Reducido para calibración
+  // Umbrales primarios - Punto medio balanceado
+  static const double gyroZThreshold = 30.0;      // °/s (punto medio: era 15→45, ahora 30)
+  static const double accelXThreshold = 2.2;      // m/s² (punto medio: era 1.5→3.0, ahora 2.2)
+
+  // Umbral para considerar "línea recta" (rechazar giros muy suaves)
+  static const double straightLineGyroMax = 20.0; // °/s - reducido de 25 para permitir curvas suaves
+
+  // Requerir correlación entre rotación y fuerza lateral
+  static const double minGyroAccelRatio = 0.05; // Muy permisivo (era 0.6, demasiado estricto)
+
+  static const Duration minTurnDuration = Duration(milliseconds: 300); // Reducido de 400 a 300
   static const Duration maxTurnDuration = Duration(seconds: 5);
 
-  static const double gyroStdDevThreshold = 15.0;  // Estabilidad (mantener permisivo)
-  static const double minConfidence = 0.15; // Reducido de 0.25 para detectar más eventos
+  static const double gyroStdDevThreshold = 20.0;  // Mantener
+  static const double minConfidence = 0.20; // Reducido de 0.25 a 0.20
   static const Duration cooldownPeriod = Duration(seconds: 2);
 
   // Clasificación de curvas
-  static const double tightTurnGyroThreshold = 30.0; // Reducido de 40.0 (más sensible)
-  static const double tightTurnAccelThreshold = 2.5; // Reducido de 3.5 (más sensible)
+  static const double tightTurnGyroThreshold = 50.0; // Reducido de 70.0 (punto medio)
+  static const double tightTurnAccelThreshold = 3.5; // Reducido de 4.5 (punto medio)
 }
 
 /// Configuración de umbrales para detección de zigzagueo
@@ -93,16 +104,16 @@ class RoughRoadConfig {
 }
 
 /// Configuración de umbrales para detección de lomos de toro
-/// AJUSTADO PARA PRUEBAS CON TELÉFONO
+/// AJUSTADO para mayor tolerancia y reducir falsas alarmas
 class SpeedBumpConfig {
-  static const double firstPeakThreshold = 2.0;   // m/s² (era 3.0)
-  static const double secondPeakThreshold = -1.8; // m/s² (era -2.5)
+  static const double firstPeakThreshold = 2.5;   // m/s² (incrementado de 2.0 para mayor tolerancia)
+  static const double secondPeakThreshold = -2.2; // m/s² (más estricto que -1.8, rango permisivo)
 
-  static const Duration minTimeBetweenPeaks = Duration(milliseconds: 300); // Reducido de 500
-  static const Duration maxTimeBetweenPeaks = Duration(milliseconds: 1500);
+  static const Duration minTimeBetweenPeaks = Duration(milliseconds: 250); // Más permisivo
+  static const Duration maxTimeBetweenPeaks = Duration(milliseconds: 1800); // Extendido para mayor rango
   static const Duration stabilizationTime = Duration(seconds: 2);
 
-  static const double minConfidence = 0.25; // Reducido de 0.50 para pruebas
+  static const double minConfidence = 0.22; // Levemente reducido de 0.25
   static const Duration cooldownPeriod = Duration(seconds: 3);
 
   // Velocidad estimada

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:collection';
 import 'package:sensors_plus/sensors_plus.dart';
 import '../../domain/entities/sensor_data.dart';
 import '../constants/app_constants.dart';
@@ -25,9 +24,6 @@ class DeviceSensorService {
     requiredSamples: AppConstants.calibrationSamples,
     calibrationDuration: Duration(seconds: AppConstants.calibrationDurationSeconds),
   );
-
-  // Filtro de ruido mejorado
-  final _filter = SensorDataFilter();
 
   // Detector de picos paralelo (sin filtro)
   final _peakDetector = PeakDetector();
@@ -91,7 +87,7 @@ class DeviceSensorService {
     // Solo emitir cuando tengamos ambos valores
     if (_lastAccel == null || _lastGyro == null) return;
 
-    // Crear dato crudo
+    // Crear dato crudo (no calibrado)
     final rawData = SensorData(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       timestamp: DateTime.now(),
@@ -102,6 +98,7 @@ class DeviceSensorService {
       gyroscopeY: _lastGyro!.y * 57.2958,
       gyroscopeZ: _lastGyro!.z * 57.2958,
       vibrationLevel: _calculateVibration(_lastAccel!),
+      isCalibrated: false, // Dato crudo sin calibrar
     );
 
     // Emitir dato crudo para diagnóstico
@@ -118,18 +115,17 @@ class DeviceSensorService {
     }
 
     // Aplicar calibración de orientación si está disponible
+    // IMPORTANTE: NO filtramos aquí para evitar doble/triple filtrado
+    // El procesador V2 aplicará los filtros necesarios
     final calibratedData = _calibrator.isCalibrated
         ? _calibrator.transformSensorData(rawData)
         : rawData;
 
-    // Aplicar filtro de ruido con ventana reducida
-    final filteredData = _filter.filter(calibratedData);
-
     // Detectar picos sin filtro (para eventos críticos)
     _peakDetector.analyze(calibratedData);
 
-    // Emitir dato filtrado
-    _sensorController.add(filteredData);
+    // Emitir dato calibrado SIN filtrar al procesador
+    _sensorController.add(calibratedData);
   }
 
   /// Calcula el nivel de vibración basado en aceleración
@@ -148,62 +144,6 @@ class DeviceSensorService {
     stopMonitoring();
     _sensorController.close();
     _rawDataController.close();
-  }
-}
-
-/// Filtro de media móvil para reducir ruido de sensores (ventana reducida)
-class SensorDataFilter {
-  final int _windowSize = AppConstants.sensorFilterWindowSize;
-  final Queue<SensorData> _buffer = Queue();
-
-  /// Aplica filtro de media móvil sobre los últimos N valores
-  SensorData filter(SensorData raw) {
-    _buffer.add(raw);
-
-    // Mantener solo los últimos N valores
-    if (_buffer.length > _windowSize) {
-      _buffer.removeFirst();
-    }
-
-    // Si aún no tenemos suficientes datos, retornar el valor crudo
-    if (_buffer.length < 3) {
-      return raw;
-    }
-
-    // Calcular promedio de todas las lecturas en el buffer
-    return _calculateAverage(_buffer, raw);
-  }
-
-  /// Calcula el promedio de todos los SensorData en el buffer
-  SensorData _calculateAverage(Queue<SensorData> buffer, SensorData latest) {
-    double sumAccelX = 0, sumAccelY = 0, sumAccelZ = 0;
-    double sumGyroX = 0, sumGyroY = 0, sumGyroZ = 0;
-    double sumVibration = 0;
-
-    for (var data in buffer) {
-      sumAccelX += data.accelerationX;
-      sumAccelY += data.accelerationY;
-      sumAccelZ += data.accelerationZ;
-      sumGyroX += data.gyroscopeX;
-      sumGyroY += data.gyroscopeY;
-      sumGyroZ += data.gyroscopeZ;
-      sumVibration += data.vibrationLevel;
-    }
-
-    final count = buffer.length;
-
-    return SensorData(
-      id: latest.id,
-      timestamp: latest.timestamp,
-      accelerationX: sumAccelX / count,
-      accelerationY: sumAccelY / count,
-      accelerationZ: sumAccelZ / count,
-      gyroscopeX: sumGyroX / count,
-      gyroscopeY: sumGyroY / count,
-      gyroscopeZ: sumGyroZ / count,
-      vibrationLevel: sumVibration / count,
-      impactDetected: latest.impactDetected, // Usar detección del último valor
-    );
   }
 }
 

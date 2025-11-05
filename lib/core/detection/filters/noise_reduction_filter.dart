@@ -22,12 +22,16 @@ class NoiseReductionFilter {
 
   /// Verifica si una lectura es válida o tiene ruido extremo
   bool isValid(SensorReading reading) {
-    // Verificar magnitud de aceleración
-    if (reading.accelMagnitude > maxAccelMagnitude) {
-      return false;
+    // NO aplicar filtro de magnitud a datos calibrados
+    // porque después de remover gravedad, los rangos cambian completamente
+    if (!reading.isCalibrated) {
+      // Solo validar magnitud en datos NO calibrados
+      if (reading.accelMagnitude > maxAccelMagnitude) {
+        return false;
+      }
     }
 
-    // Verificar magnitud de giroscopio
+    // Verificar magnitud de giroscopio (aplica a calibrados y no calibrados)
     if (reading.gyroMagnitude > maxGyroMagnitude) {
       return false;
     }

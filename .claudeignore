@@ -1,0 +1,34 @@
+# Archivos y carpetas que Claude Code debe ignorar
+
+# Build outputs
+build/
+.dart_tool/
+*.apk
+*.aab
+*.ipa
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Git
+.git/
+
+# Firebase local
+.firebase/
+
+# Node modules (si usas Cloud Functions)
+node_modules/
+
+# Documentación generada
+*.g.dart
+*.freezed.dart
+
+# Logs
+*.log
+
+# Archivos temporales
+*.tmp
+*.temp
+*.swp

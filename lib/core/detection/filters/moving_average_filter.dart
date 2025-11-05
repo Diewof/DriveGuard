@@ -49,6 +49,7 @@ class MovingAverageFilter {
       gyroX: sumGyroX / count,
       gyroY: sumGyroY / count,
       gyroZ: sumGyroZ / count,
+      isCalibrated: latest.isCalibrated, // Propagar flag de calibración
     );
   }
 

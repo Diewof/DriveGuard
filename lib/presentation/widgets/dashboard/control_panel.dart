@@ -1,5 +1,15 @@
 import 'package:flutter/material.dart';
+import '../../../core/utils/app_colors.dart';
+import '../../../core/utils/app_spacing.dart';
+import '../../../core/utils/app_typography.dart';
+import '../../../core/widgets/common_card.dart';
 
+/// Panel de control principal - Monitoreo de sesión
+///
+/// Aplica diseño DriveGuard:
+/// - Gradiente según estado (azul/verde)
+/// - Tipografía Montserrat para números
+/// - Animación suave en cambios de estado
 class ControlPanel extends StatelessWidget {
   final bool isMonitoring;
   final Duration sessionDuration;
@@ -14,74 +24,79 @@ class ControlPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isMonitoring
-            ? [Colors.green[700]!, Colors.green[500]!]
-            : [Colors.blue[700]!, Colors.blue[500]!],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    return GradientCard(
+      gradientColors: AppColors.getMonitoringGradient(isMonitoring),
+      padding: const EdgeInsets.all(AppSpacing.paddingSection),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                isMonitoring ? 'MONITOREANDO' : 'EN ESPERA',
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Estado (overline)
+                Text(
+                  isMonitoring ? 'MONITOREANDO' : 'EN ESPERA',
+                  style: AppTypography.overline.copyWith(
+                    color: Colors.white.withValues(alpha: 0.85),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _formatDuration(sessionDuration),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
+                const SizedBox(height: AppSpacing.xs),
+                // Duración (display)
+                Text(
+                  _formatDuration(sessionDuration),
+                  style: AppTypography.displayMedium.copyWith(
+                    color: Colors.white,
+                  ),
                 ),
+                const SizedBox(height: AppSpacing.xs),
+                // Descripción
+                Text(
+                  isMonitoring
+                      ? 'Sesión activa'
+                      : 'Toca para iniciar',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: Colors.white.withValues(alpha: 0.75),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          // Botón de control
+          _buildControlButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildControlButton() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onToggleMonitoring,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusCircular),
+        child: Container(
+          width: 72,
+          height: 72,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+                spreadRadius: 0,
               ),
             ],
           ),
-          GestureDetector(
-            onTap: onToggleMonitoring,
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Icon(
-                isMonitoring ? Icons.stop : Icons.play_arrow,
-                size: 40,
-                color: isMonitoring ? Colors.red : Colors.green[700],
-              ),
-            ),
+          child: Icon(
+            isMonitoring ? Icons.stop_rounded : Icons.play_arrow_rounded,
+            size: AppSpacing.iconLarge,
+            color: isMonitoring ? AppColors.danger : AppColors.success,
           ),
-        ],
+        ),
       ),
     );
   }

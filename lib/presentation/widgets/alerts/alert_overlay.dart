@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import '../../../core/services/notification_service.dart';
+import '../../../core/utils/app_colors.dart';
+import '../../../core/utils/app_spacing.dart';
+import '../../../core/utils/app_typography.dart';
 
 class AlertOverlay extends StatefulWidget {
   final AlertNotification notification;
@@ -113,11 +116,9 @@ class _AlertOverlayState extends State<AlertOverlay>
   void _dismiss() {
     _autoDismissTimer?.cancel();
 
-    _slideController.reverse().then((_) {
-      if (widget.onDismiss != null) {
-        widget.onDismiss!();
-      }
-    });
+    if (mounted && widget.onDismiss != null) {
+      widget.onDismiss!();
+    }
   }
 
   void _stopAlert() {
@@ -139,43 +140,54 @@ class _AlertOverlayState extends State<AlertOverlay>
   Color _getSeverityColor(AlertSeverity severity) {
     switch (severity) {
       case AlertSeverity.low:
-        return Colors.yellow[700]!;
+        return AppColors.warning;
       case AlertSeverity.medium:
-        return Colors.orange;
+        return AppColors.moderate;
       case AlertSeverity.high:
-        return Colors.deepOrange;
+        return AppColors.danger;
       case AlertSeverity.critical:
-        return Colors.red;
+        return const Color(0xFFDC2626); // red-700
     }
   }
 
   Color _getBackgroundColor(AlertSeverity severity) {
     switch (severity) {
       case AlertSeverity.low:
-        return Colors.yellow[50]!;
+        return AppColors.getSeverityBackgroundColor('LOW');
       case AlertSeverity.medium:
-        return Colors.orange[50]!;
+        return AppColors.getSeverityBackgroundColor('MEDIUM');
       case AlertSeverity.high:
-        return Colors.deepOrange[50]!;
+        return AppColors.getSeverityBackgroundColor('HIGH');
       case AlertSeverity.critical:
-        return Colors.red[50]!;
+        return AppColors.getSeverityBackgroundColor('CRITICAL');
     }
   }
 
   IconData _getAlertIcon(AlertType type) {
     switch (type) {
-      case AlertType.distraction:
-        return Icons.visibility_off;
-      case AlertType.recklessDriving:
-        return Icons.speed;
-      case AlertType.impact:
-        return Icons.car_crash;
-      case AlertType.phoneUsage:
-        return Icons.phone_android;
-      case AlertType.lookAway:
-        return Icons.remove_red_eye;
+      // IMU-based alerts
       case AlertType.harshBraking:
-        return Icons.report_problem;
+        return Icons.warning; // Frenado brusco
+      case AlertType.aggressiveAcceleration:
+        return Icons.speed; // Aceleración agresiva
+      case AlertType.sharpTurn:
+        return Icons.turn_sharp_right; // Giro cerrado
+      case AlertType.weaving:
+        return Icons.sync_alt; // Zigzagueo
+      case AlertType.roughRoad:
+        return Icons.terrain; // Camino irregular
+      case AlertType.speedBump:
+        return Icons.landscape; // Lomo de toro
+
+      // Vision-based alerts
+      case AlertType.distraction:
+        return Icons.phone_android; // Distracción por celular
+      case AlertType.inattention:
+        return Icons.visibility_off; // Desatención visual
+      case AlertType.handsOff:
+        return Icons.front_hand; // Manos fuera del volante
+      case AlertType.noFaceDetected:
+        return Icons.person_off; // Sin rostro detectado
     }
   }
 
@@ -194,32 +206,36 @@ class _AlertOverlayState extends State<AlertOverlay>
 
   @override
   Widget build(BuildContext context) {
+    final severityColor = _getSeverityColor(widget.notification.severity);
+    final backgroundColor = _getBackgroundColor(widget.notification.severity);
+
     return Material(
       type: MaterialType.transparency,
       child: Container(
         width: double.infinity,
         height: double.infinity,
-        color: Colors.black.withValues(alpha: 0.4),
+        color: AppColors.overlay,
         child: SafeArea(
           child: SlideTransition(
             position: _slideAnimation,
             child: ScaleTransition(
               scale: _scaleAnimation,
               child: Container(
-                margin: const EdgeInsets.all(20),
-                padding: const EdgeInsets.all(20),
+                margin: const EdgeInsets.all(AppSpacing.paddingSection),
+                padding: const EdgeInsets.all(AppSpacing.paddingSection),
                 decoration: BoxDecoration(
-                  color: _getBackgroundColor(widget.notification.severity),
-                  borderRadius: BorderRadius.circular(16),
+                  color: backgroundColor,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
                   border: Border.all(
-                    color: _getSeverityColor(widget.notification.severity),
-                    width: 2,
+                    color: severityColor,
+                    width: AppSpacing.borderMedium,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.3),
-                      blurRadius: 15,
+                      color: Colors.black.withValues(alpha: 0.25),
+                      blurRadius: 20,
                       offset: const Offset(0, 8),
+                      spreadRadius: 0,
                     ),
                   ],
                 ),
@@ -237,39 +253,37 @@ class _AlertOverlayState extends State<AlertOverlay>
                                   ? _pulseAnimation.value
                                   : 1.0,
                               child: Container(
-                                padding: const EdgeInsets.all(12),
+                                padding: const EdgeInsets.all(AppSpacing.md),
                                 decoration: BoxDecoration(
-                                  color: _getSeverityColor(widget.notification.severity),
+                                  color: severityColor,
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
                                   _getAlertIcon(widget.notification.type),
                                   color: Colors.white,
-                                  size: 32,
+                                  size: AppSpacing.iconLarge,
                                 ),
                               ),
                             );
                           },
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: AppSpacing.md),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 'ALERTA DE SEGURIDAD',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: _getSeverityColor(widget.notification.severity),
+                                style: AppTypography.label.copyWith(
+                                  color: severityColor,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: AppSpacing.xs),
                               Text(
                                 'Severidad: ${_getSeverityText(widget.notification.severity)}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: _getSeverityColor(widget.notification.severity).withValues(alpha: 0.8),
+                                style: AppTypography.caption.copyWith(
+                                  color: severityColor.withValues(alpha: 0.85),
                                 ),
                               ),
                             ],
@@ -278,18 +292,17 @@ class _AlertOverlayState extends State<AlertOverlay>
                         // Contador de tiempo
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
+                            horizontal: AppSpacing.sm,
+                            vertical: AppSpacing.xs,
                           ),
                           decoration: BoxDecoration(
-                            color: _getSeverityColor(widget.notification.severity),
-                            borderRadius: BorderRadius.circular(12),
+                            color: severityColor,
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
                           ),
                           child: Text(
                             '${_remainingSeconds}s',
-                            style: const TextStyle(
+                            style: AppTypography.caption.copyWith(
                               color: Colors.white,
-                              fontSize: 12,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -297,32 +310,31 @@ class _AlertOverlayState extends State<AlertOverlay>
                       ],
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: AppSpacing.paddingSection),
 
                     // Mensaje principal
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(AppSpacing.md),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
                         border: Border.all(
-                          color: Colors.grey[200]!,
-                          width: 1,
+                          color: AppColors.border,
+                          width: AppSpacing.borderThin,
                         ),
                       ),
                       child: Text(
                         widget.notification.message,
-                        style: const TextStyle(
-                          fontSize: 16,
+                        style: AppTypography.alertBody.copyWith(
+                          color: AppColors.textPrimary,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
                         ),
                         textAlign: TextAlign.center,
                       ),
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: AppSpacing.paddingSection),
 
                     // Indicadores de notificación activa
                     Row(
@@ -412,7 +424,7 @@ class _AlertOverlayState extends State<AlertOverlay>
                     // Barra de progreso
                     const SizedBox(height: 16),
                     LinearProgressIndicator(
-                      value: _remainingSeconds / 5.0,
+                      value: _remainingSeconds / (widget.customDuration ?? 5).toDouble(),
                       backgroundColor: Colors.grey[300],
                       valueColor: AlwaysStoppedAnimation<Color>(
                         _getSeverityColor(widget.notification.severity),

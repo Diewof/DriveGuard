@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/utils/validators.dart';
+import '../../../core/utils/app_colors.dart';
+import '../../../core/utils/app_typography.dart';
+import '../../../core/utils/app_spacing.dart';
 import '../../../domain/entities/emergency_contact.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_event.dart';
@@ -205,12 +208,12 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: Icon(Icons.arrow_back_outlined, color: AppColors.textPrimary),
           onPressed: () {
             if (_currentStep > 0) {
               _previousStep();
@@ -221,7 +224,7 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
         title: Text(
           'Paso ${_currentStep + 1} de 3',
-          style: const TextStyle(color: Colors.black87, fontSize: 16),
+          style: AppTypography.h4.copyWith(color: AppColors.textPrimary),
         ),
         centerTitle: true,
       ),
@@ -231,7 +234,12 @@ class _RegisterPageState extends State<RegisterPage> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.errorMessage!),
-                backgroundColor: Colors.red,
+                backgroundColor: AppColors.danger,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                ),
+                margin: EdgeInsets.all(AppSpacing.md),
               ),
             );
           }
@@ -244,19 +252,24 @@ class _RegisterPageState extends State<RegisterPage> {
             children: [
               // Indicador de progreso
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding: EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.md,
+                ),
                 child: Row(
                   children: List.generate(
                     3,
                     (index) => Expanded(
                       child: Container(
-                        margin: EdgeInsets.only(right: index < 2 ? 8 : 0),
-                        height: 4,
+                        margin: EdgeInsets.only(
+                          right: index < 2 ? AppSpacing.sm : 0,
+                        ),
+                        height: AppSpacing.xs,
                         decoration: BoxDecoration(
                           color: index <= _currentStep
-                              ? Colors.blue[900]
-                              : Colors.grey[300],
-                          borderRadius: BorderRadius.circular(2),
+                              ? AppColors.primary
+                              : AppColors.border,
+                          borderRadius: BorderRadius.circular(AppSpacing.borderMedium),
                         ),
                       ),
                     ),
@@ -282,7 +295,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
               // Botones de navegación
               Padding(
-                padding: const EdgeInsets.all(24),
+                padding: EdgeInsets.all(AppSpacing.lg),
                 child: BlocBuilder<AuthBloc, AuthState>(
                   builder: (context, state) {
                     return AuthButton(
@@ -302,24 +315,20 @@ class _RegisterPageState extends State<RegisterPage> {
 
   Widget _buildAccountStep() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Datos de Cuenta',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
+            style: AppTypography.h2,
           ),
-          const SizedBox(height: 8),
-          const Text(
+          SizedBox(height: AppSpacing.sm),
+          Text(
             'Crea tu cuenta con email y contraseña',
-            style: TextStyle(fontSize: 16, color: Colors.grey),
+            style: AppTypography.body.copyWith(color: AppColors.textSecondary),
           ),
-          const SizedBox(height: 40),
+          SizedBox(height: AppSpacing.xl),
           AuthTextField(
             label: 'Email',
             hint: 'ejemplo@correo.com',
@@ -356,24 +365,20 @@ class _RegisterPageState extends State<RegisterPage> {
 
   Widget _buildPersonalInfoStep() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Información Personal',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
+            style: AppTypography.h2,
           ),
-          const SizedBox(height: 8),
-          const Text(
+          SizedBox(height: AppSpacing.sm),
+          Text(
             'Completa tus datos personales',
-            style: TextStyle(fontSize: 16, color: Colors.grey),
+            style: AppTypography.body.copyWith(color: AppColors.textSecondary),
           ),
-          const SizedBox(height: 40),
+          SizedBox(height: AppSpacing.xl),
           AuthTextField(
             label: 'Nombre Completo',
             hint: 'Juan Pérez',
@@ -434,24 +439,20 @@ class _RegisterPageState extends State<RegisterPage> {
 
   Widget _buildEmergencyContactsStep() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Contactos de Emergencia',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
+            style: AppTypography.h2,
           ),
-          const SizedBox(height: 8),
-          const Text(
+          SizedBox(height: AppSpacing.sm),
+          Text(
             'Agrega al menos un contacto de emergencia',
-            style: TextStyle(fontSize: 16, color: Colors.grey),
+            style: AppTypography.body.copyWith(color: AppColors.textSecondary),
           ),
-          const SizedBox(height: 32),
+          SizedBox(height: AppSpacing.xl),
 
           // Lista de contactos
           if (_emergencyContacts.isEmpty)

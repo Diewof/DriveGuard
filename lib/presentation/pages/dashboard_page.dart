@@ -5,19 +5,21 @@ import '../blocs/auth/auth_bloc.dart';
 import '../blocs/auth/auth_event.dart';
 import '../blocs/dashboard/dashboard_bloc.dart';
 import '../blocs/session/session_bloc.dart';
+import '../../domain/repositories/camera_repository.dart';
 import '../widgets/dashboard/control_panel.dart';
 import '../widgets/dashboard/risk_indicator.dart';
 import '../widgets/dashboard/status_indicator.dart';
 import '../widgets/dashboard/stats_cards.dart';
+import '../widgets/dashboard/emergency_confirmation_card.dart';
 import '../widgets/alerts/alert_overlay.dart';
 import '../widgets/esp32/esp32_connection_indicator.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/app_colors.dart';
+import '../../core/utils/app_spacing.dart';
+import '../../core/utils/app_typography.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/common_card.dart';
 import '../../core/services/notification_service.dart';
-import '../../domain/repositories/camera_repository.dart';
-import 'esp32/esp32_debug_page.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -28,6 +30,7 @@ class DashboardPage extends StatelessWidget {
       create: (context) => DashboardBloc(
         sessionBloc: context.read<SessionBloc>(),
         authBloc: context.read<AuthBloc>(),
+        cameraRepository: context.read<CameraRepository>(),
       ),
       child: const DashboardView(),
     );
@@ -46,6 +49,7 @@ class _DashboardViewState extends State<DashboardView>
   late AnimationController _pulseController;
   late AnimationController _alertController;
   final NotificationService _notificationService = NotificationService();
+  bool _emergencyDialogShown = false;
 
   @override
   void initState() {
@@ -81,23 +85,35 @@ class _DashboardViewState extends State<DashboardView>
       context: context,
       barrierDismissible: true,
       barrierColor: Colors.black.withValues(alpha: 0.4),
-      builder: (context) => AlertOverlay(
+      builder: (dialogContext) => AlertOverlay(
         notification: notification,
         customDuration: _notificationService.settings.alertCardDuration,
         onDismiss: () {
-          Navigator.of(context).pop();
+          if (Navigator.canPop(dialogContext)) {
+            Navigator.of(dialogContext, rootNavigator: false).pop();
+          }
         },
         onStop: () {
           _notificationService.stopCurrentAlert();
-          Navigator.of(context).pop();
+          if (Navigator.canPop(dialogContext)) {
+            Navigator.of(dialogContext, rootNavigator: false).pop();
+          }
         },
       ),
     );
   }
 
   void _hideAlertOverlay() {
-    if (mounted && Navigator.canPop(context)) {
-      Navigator.of(context).pop();
+    if (mounted) {
+      // Intentar cerrar el diálogo de forma segura
+      try {
+        final navigator = Navigator.of(context, rootNavigator: false);
+        if (navigator.canPop()) {
+          navigator.pop();
+        }
+      } catch (e) {
+        // Ignorar errores si el diálogo ya se cerró
+      }
     }
   }
 
@@ -118,6 +134,13 @@ class _DashboardViewState extends State<DashboardView>
       body: BlocListener<DashboardBloc, DashboardState>(
         listener: (context, state) {
           _updateAnimations(state);
+
+          // Mostrar/ocultar card de confirmación de emergencia
+          if (state.showEmergencyConfirmation && !_emergencyDialogShown) {
+            _showEmergencyConfirmation(context, state.emergencyCountdown);
+          } else if (!state.showEmergencyConfirmation && _emergencyDialogShown) {
+            _hideEmergencyConfirmation(context);
+          }
         },
         child: BlocBuilder<DashboardBloc, DashboardState>(
           builder: (context, state) {
@@ -171,31 +194,30 @@ class _DashboardViewState extends State<DashboardView>
 
   AppBar _buildAppBar() {
     return AppBar(
-      title: const Text(
+      title: Text(
         'DriveGuard Monitor',
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
+        style: AppTypography.h3.copyWith(
           color: Colors.white,
         ),
       ),
       backgroundColor: AppColors.primaryDark,
-      elevation: 2,
+      elevation: AppSpacing.elevation2,
+      iconTheme: const IconThemeData(color: Colors.white),
       actions: [
         BlocBuilder<DashboardBloc, DashboardState>(
           builder: (context, state) {
+            final isConnected = state.deviceStatus == 'CONECTADO';
+            final statusColor = isConnected ? AppColors.success : AppColors.danger;
+
             return Container(
-              margin: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              margin: const EdgeInsets.only(right: AppSpacing.md, top: AppSpacing.sm, bottom: AppSpacing.sm),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
               decoration: BoxDecoration(
-                color: state.deviceStatus == 'CONECTADO'
-                  ? AppColors.success.withValues(alpha: 0.2)
-                  : AppColors.error.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(16),
+                color: statusColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusCircular),
                 border: Border.all(
-                  color: state.deviceStatus == 'CONECTADO'
-                    ? AppColors.success
-                    : AppColors.error,
-                  width: 1,
+                  color: statusColor,
+                  width: AppSpacing.borderThin,
                 ),
               ),
               child: Row(
@@ -209,20 +231,18 @@ class _DashboardViewState extends State<DashboardView>
                         height: 8,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: (state.deviceStatus == 'CONECTADO'
-                            ? AppColors.success
-                            : AppColors.error)
-                            .withValues(alpha: 0.7 + (_pulseController.value * 0.3)),
+                          color: statusColor.withValues(
+                            alpha: 0.7 + (_pulseController.value * 0.3),
+                          ),
                         ),
                       );
                     },
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.sm),
                   Text(
                     state.deviceStatus,
-                    style: const TextStyle(
+                    style: AppTypography.caption.copyWith(
                       color: Colors.white,
-                      fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -237,140 +257,285 @@ class _DashboardViewState extends State<DashboardView>
 
   Widget _buildDrawer(BuildContext context) {
     return Drawer(
+      backgroundColor: Colors.white,
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          const DrawerHeader(
-            decoration: BoxDecoration(
+          // Header con gradiente de marca
+          Container(
+            height: 220,
+            decoration: const BoxDecoration(
               gradient: LinearGradient(
                 colors: [AppColors.primaryDark, AppColors.primary],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Icon(Icons.car_rental, color: Colors.white, size: 48),
-                SizedBox(height: 8),
-                Text(
-                  AppConstants.appName,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    // Logo con sombra
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+                      child: Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+                        ),
+                        child: Image.asset(
+                          'assets/images/logo_app.png',
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: Colors.white.withValues(alpha: 0.15),
+                              child: const Icon(
+                                Icons.shield_outlined,
+                                color: Colors.white,
+                                size: 40,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      AppConstants.appName,
+                      style: AppTypography.h2.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      'Sistema de Monitoreo Inteligente',
+                      style: AppTypography.body.copyWith(
+                        color: Colors.white.withValues(alpha: 0.9),
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  'Sistema de Monitoreo',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-          ListTile(
-            leading: const Icon(Icons.person, color: AppColors.primary),
-            title: const Text('Mi Perfil'),
+
+          const SizedBox(height: AppSpacing.sm),
+
+          // Menú items con hover states
+          _buildDrawerItem(
+            context: context,
+            icon: Icons.person_outline,
+            title: 'Mi Perfil',
             onTap: () {
               Navigator.pop(context);
               context.push('/profile');
             },
           ),
-          ListTile(
-            leading: const Icon(Icons.history, color: AppColors.primary),
-            title: const Text('Historial'),
+          _buildDrawerItem(
+            context: context,
+            icon: Icons.history_outlined,
+            title: 'Historial',
             onTap: () {
               Navigator.pop(context);
               context.push('/history');
             },
           ),
-          ListTile(
-            leading: const Icon(Icons.settings, color: AppColors.primary),
-            title: const Text('Configuración'),
+          _buildDrawerItem(
+            context: context,
+            icon: Icons.notifications_outlined,
+            title: 'Notificaciones',
             onTap: () {
               Navigator.pop(context);
               context.push(AppConstants.notificationSettingsRoute);
             },
           ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.camera_alt, color: AppColors.primary),
-            title: const Text('ESP32-CAM Debug'),
-            subtitle: const Text('Visualizar stream ESP32', style: TextStyle(fontSize: 12)),
+          _buildDrawerItem(
+            context: context,
+            icon: Icons.tune_outlined,
+            title: 'Detección',
             onTap: () {
               Navigator.pop(context);
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const ESP32DebugPage(),
-                ),
-              );
+              context.push('/detection-settings');
             },
           ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.logout, color: AppColors.error),
-            title: const Text('Cerrar Sesión'),
+          _buildDrawerItem(
+            context: context,
+            icon: Icons.camera_enhance_outlined,
+            title: 'Detectar y Calibrar Cam',
+            subtitle: 'Verificar posición y ajustar ROI',
+            onTap: () {
+              Navigator.pop(context);
+              context.push('/camera-calibration');
+            },
+          ),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            child: Divider(
+              color: AppColors.divider,
+              thickness: 1,
+            ),
+          ),
+
+          _buildDrawerItem(
+            context: context,
+            icon: Icons.support_agent,
+            title: 'Soporte',
+            subtitle: 'Ayuda y preguntas frecuentes',
+            onTap: () {
+              Navigator.pop(context);
+              context.push('/support');
+            },
+          ),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            child: Divider(
+              color: AppColors.divider,
+              thickness: 1,
+            ),
+          ),
+
+          _buildDrawerItem(
+            context: context,
+            icon: Icons.logout_outlined,
+            title: 'Cerrar Sesión',
+            iconColor: AppColors.danger,
+            textColor: AppColors.danger,
             onTap: () {
               Navigator.pop(context);
               context.read<AuthBloc>().add(AuthLogoutRequested());
               context.go(AppConstants.loginRoute);
             },
           ),
+
+          const SizedBox(height: AppSpacing.lg),
         ],
       ),
     );
   }
 
+  Widget _buildDrawerItem({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required VoidCallback onTap,
+    Color? iconColor,
+    Color? textColor,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: 2,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.md,
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  color: iconColor ?? AppColors.primary,
+                  size: AppSpacing.iconMedium,
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: AppTypography.body.copyWith(
+                          color: textColor ?? AppColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right,
+                  color: AppColors.textDisabled,
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildEsp32ConnectionIndicator(BuildContext context) {
-    // Usar watch en lugar de read para reactividad si el servidor cambia de estado
-    try {
-      final cameraRepository = context.read<CameraRepository>();
-      final serverInfo = cameraRepository.getServerInfo();
-      final isRunning = serverInfo['isRunning'] as bool? ?? false;
+    return BlocBuilder<DashboardBloc, DashboardState>(
+      builder: (context, state) {
+        // Si no está monitoreando, no mostrar el indicador
+        if (!state.isMonitoring) {
+          return const SizedBox.shrink();
+        }
 
-      if (!isRunning) {
-        return const SizedBox.shrink();
-      }
+        // Determinar estado de conexión basado en el estado del BLoC
+        Esp32ConnectionStatus status;
 
-      return StreamBuilder<String>(
-        stream: cameraRepository.esp32ConnectedStream,
-        builder: (context, esp32Snapshot) {
-          // Determinar estado de conexión
-          Esp32ConnectionStatus status;
-          String? esp32Ip;
+        if (state.deviceStatus == 'CONECTADO') {
+          status = Esp32ConnectionStatus.connected;
+        } else if (state.serverIp != null) {
+          status = Esp32ConnectionStatus.waiting;
+        } else {
+          return const SizedBox.shrink();
+        }
 
-          if (esp32Snapshot.hasData) {
-            status = Esp32ConnectionStatus.connected;
-            esp32Ip = esp32Snapshot.data;
-          } else if (cameraRepository.frameCount > 0) {
-            status = Esp32ConnectionStatus.connected;
-          } else {
-            status = Esp32ConnectionStatus.waiting;
-          }
-
-          return Esp32ConnectionIndicator(
-            status: status,
-            esp32Ip: esp32Ip,
-            serverIp: serverInfo['ip'] as String?,
-            serverPort: serverInfo['port'] as int?,
-          );
-        },
-      );
-    } catch (e) {
-      // Si hay error al acceder al repository, mostrar widget vacío
-      return const SizedBox.shrink();
-    }
+        return Esp32ConnectionIndicator(
+          status: status,
+          esp32Ip: state.esp32Ip,
+          serverIp: state.serverIp,
+          serverPort: state.serverPort,
+        );
+      },
+    );
   }
 
   Widget _buildSensorData(DashboardState state) {
     final sensorData = state.currentSensorData;
     if (sensorData == null) {
-      return const CommonCard(
-        child: Center(child: Text('No hay datos de sensores')),
+      return CommonCard(
+        child: Center(
+          child: Text(
+            'No hay datos de sensores',
+            style: AppTypography.body.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
       );
     }
 
@@ -381,18 +546,18 @@ class _DashboardViewState extends State<DashboardView>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Sensores en Tiempo Real',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
+                style: AppTypography.h4,
               ),
-              Icon(Icons.sensors, color: Colors.grey[400]),
+              Icon(
+                Icons.sensors_outlined,
+                color: AppColors.textDisabled,
+                size: AppSpacing.iconSmall,
+              ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.md),
           Row(
             children: [
               Expanded(
@@ -429,13 +594,12 @@ class _DashboardViewState extends State<DashboardView>
       children: [
         Text(
           title,
-          style: const TextStyle(
-            fontSize: 12,
+          style: AppTypography.caption.copyWith(
             color: AppColors.textSecondary,
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.sm),
         ...values.map((value) => _buildSensorValue(value.$1, value.$2)),
       ],
     );
@@ -447,11 +611,10 @@ class _DashboardViewState extends State<DashboardView>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('$axis:', style: const TextStyle(fontSize: 14)),
+          Text('$axis:', style: AppTypography.body),
           Text(
             Formatters.formatSensorValue(value),
-            style: const TextStyle(
-              fontSize: 14,
+            style: AppTypography.body.copyWith(
               fontWeight: FontWeight.bold,
               color: AppColors.primary,
             ),
@@ -469,25 +632,27 @@ class _DashboardViewState extends State<DashboardView>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Alertas Recientes',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
+                style: AppTypography.h4,
               ),
-              Icon(Icons.history, color: Colors.grey[400]),
+              Icon(
+                Icons.history,
+                color: AppColors.textDisabled,
+                size: AppSpacing.iconSmall,
+              ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.md),
           if (state.recentAlerts.isEmpty)
-            const Center(
+            Center(
               child: Padding(
-                padding: EdgeInsets.all(20),
+                padding: const EdgeInsets.all(AppSpacing.paddingSection),
                 child: Text(
                   'No hay alertas recientes',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                  style: AppTypography.body.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ),
             )
@@ -504,15 +669,17 @@ class _DashboardViewState extends State<DashboardView>
   }
 
   Widget _buildAlertItem(Map<String, dynamic> alert, String timeString) {
+    final severityColor = AppColors.getSeverityColor(alert['severity']);
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.getSeverityColor(alert['severity']).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
+        color: AppColors.getSeverityBackgroundColor(alert['severity']),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
         border: Border.all(
-          color: AppColors.getSeverityColor(alert['severity']).withValues(alpha: 0.3),
-          width: 1,
+          color: severityColor.withValues(alpha: 0.3),
+          width: AppSpacing.borderThin,
         ),
       ),
       child: Row(
@@ -522,27 +689,25 @@ class _DashboardViewState extends State<DashboardView>
             height: 8,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.getSeverityColor(alert['severity']),
+              color: severityColor,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   alert['type'],
-                  style: const TextStyle(
-                    fontSize: 14,
+                  style: AppTypography.body.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
                   ),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   'Severidad: ${alert['severity']}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.getSeverityColor(alert['severity']),
+                  style: AppTypography.caption.copyWith(
+                    color: severityColor,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -551,8 +716,7 @@ class _DashboardViewState extends State<DashboardView>
           ),
           Text(
             timeString,
-            style: const TextStyle(
-              fontSize: 11,
+            style: AppTypography.caption.copyWith(
               color: AppColors.textSecondary,
             ),
           ),
@@ -564,29 +728,29 @@ class _DashboardViewState extends State<DashboardView>
   Widget _buildEmergencyButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 60,
+      height: AppSpacing.buttonHeightLarge,
       child: ElevatedButton(
         onPressed: () {
           context.read<DashboardBloc>().add(DashboardEmergencyActivated());
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.error,
+          backgroundColor: AppColors.danger,
           foregroundColor: Colors.white,
-          elevation: 4,
+          elevation: AppSpacing.elevation3,
+          shadowColor: AppColors.danger.withValues(alpha: 0.4),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(AppSpacing.radiusCircular),
           ),
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.emergency, size: 28),
-            SizedBox(width: 12),
+            const Icon(Icons.emergency, size: AppSpacing.iconLarge),
+            const SizedBox(width: AppSpacing.md),
             Text(
               'ACTIVAR PROTOCOLO DE EMERGENCIA',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
+              style: AppTypography.button.copyWith(
+                fontSize: 15,
               ),
             ),
           ],
@@ -620,6 +784,43 @@ class _DashboardViewState extends State<DashboardView>
       _alertController.forward().then((_) {
         _alertController.reverse();
       });
+    }
+  }
+
+  void _showEmergencyConfirmation(BuildContext context, int countdown) {
+    // Solo mostrar si no está ya visible
+    if (!mounted || _emergencyDialogShown) return;
+
+    _emergencyDialogShown = true;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false, // No se puede cerrar tocando fuera
+      barrierColor: Colors.black.withValues(alpha: 0.7),
+      builder: (dialogContext) => EmergencyConfirmationCard(
+        countdown: countdown,
+        onCancel: () {
+          context.read<DashboardBloc>().add(DashboardEmergencyCancelled());
+        },
+      ),
+    ).then((_) {
+      // Cuando se cierre el diálogo, actualizar la bandera
+      _emergencyDialogShown = false;
+    });
+  }
+
+  void _hideEmergencyConfirmation(BuildContext context) {
+    if (mounted && _emergencyDialogShown) {
+      try {
+        final navigator = Navigator.of(context, rootNavigator: false);
+        if (navigator.canPop()) {
+          navigator.pop();
+        }
+        _emergencyDialogShown = false;
+      } catch (e) {
+        // Ignorar errores si el diálogo ya se cerró
+        _emergencyDialogShown = false;
+      }
     }
   }
 }

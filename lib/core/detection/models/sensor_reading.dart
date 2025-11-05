@@ -10,6 +10,7 @@ class SensorReading extends Equatable {
   final double gyroX;  // °/s
   final double gyroY;  // °/s
   final double gyroZ;  // °/s
+  final bool isCalibrated; // Indica si los datos están calibrados (gravedad removida)
 
   const SensorReading({
     required this.timestamp,
@@ -19,6 +20,7 @@ class SensorReading extends Equatable {
     required this.gyroX,
     required this.gyroY,
     required this.gyroZ,
+    this.isCalibrated = false,
   });
 
   /// Calcula la magnitud vectorial total de aceleración
@@ -70,5 +72,5 @@ class SensorReading extends Equatable {
   }
 
   @override
-  List<Object?> get props => [timestamp, accelX, accelY, accelZ, gyroX, gyroY, gyroZ];
+  List<Object?> get props => [timestamp, accelX, accelY, accelZ, gyroX, gyroY, gyroZ, isCalibrated];
 }

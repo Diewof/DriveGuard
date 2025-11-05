@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/utils/validators.dart';
+import '../../../core/utils/app_colors.dart';
+import '../../../core/utils/app_typography.dart';
+import '../../../core/utils/app_spacing.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_event.dart';
 import '../../blocs/auth/auth_state.dart';
@@ -61,14 +64,19 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.backgroundLight,
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state.errorMessage != null) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.errorMessage!),
-                backgroundColor: Colors.red,
+                backgroundColor: AppColors.danger,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                ),
+                margin: EdgeInsets.all(AppSpacing.md),
               ),
             );
           }
@@ -78,65 +86,67 @@ class _LoginPageState extends State<LoginPage> {
         },
         child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(AppSpacing.lg),
             child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 40),
+                  SizedBox(height: AppSpacing.xl),
 
                   // Logo y título
                   Center(
                     child: Column(
                       children: [
                         Container(
-                          width: 80,
-                          height: 80,
+                          width: 96,
+                          height: 96,
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.grey.withValues(alpha: 0.2),
-                                spreadRadius: 1,
-                                blurRadius: 5,
-                                offset: const Offset(0, 2),
+                                color: AppColors.primary.withValues(alpha: 0.3),
+                                spreadRadius: 0,
+                                blurRadius: 20,
+                                offset: const Offset(0, 8),
                               ),
                             ],
                           ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
+                          child: Padding(
+                            padding: const EdgeInsets.all(AppSpacing.md),
                             child: Image.asset(
                               'assets/images/logo.png',
-                              width: 60,
-                              height: 60,
                               fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Icon(
+                                  Icons.shield_outlined,
+                                  size: AppSpacing.iconXLarge,
+                                  color: AppColors.primary,
+                                );
+                              },
                             ),
                           ),
                         ),
-                        const SizedBox(height: 24),
-                        const Text(
+                        SizedBox(height: AppSpacing.lg),
+                        Text(
                           'Bienvenido a DriveGuard',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
+                          style: AppTypography.h1.copyWith(fontSize: 28),
+                          textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 8),
-                        const Text(
+                        SizedBox(height: AppSpacing.sm),
+                        Text(
                           'Inicia sesión para continuar',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
+                          style: AppTypography.body.copyWith(
+                            color: AppColors.textSecondary,
                           ),
+                          textAlign: TextAlign.center,
                         ),
                       ],
                     ),
                   ),
 
-                  const SizedBox(height: 48),
+                  SizedBox(height: AppSpacing.xxl),
 
                   // Campos de formulario
                   AuthTextField(
@@ -148,7 +158,7 @@ class _LoginPageState extends State<LoginPage> {
                     prefixIcon: const Icon(Icons.email_outlined),
                   ),
 
-                  const SizedBox(height: 24),
+                  SizedBox(height: AppSpacing.lg),
 
                   AuthTextField(
                     label: 'Contraseña',
@@ -159,7 +169,7 @@ class _LoginPageState extends State<LoginPage> {
                     prefixIcon: const Icon(Icons.lock_outlined),
                   ),
 
-                  const SizedBox(height: 16),
+                  SizedBox(height: AppSpacing.md),
 
                   // Remember me y forgot password
                   Row(
@@ -174,17 +184,26 @@ class _LoginPageState extends State<LoginPage> {
                                 _rememberMe = value ?? false;
                               });
                             },
-                            activeColor: Colors.blue[900],
+                            activeColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(AppSpacing.xs),
+                            ),
                           ),
-                          const Text('Recordarme'),
+                          Text(
+                            'Recordarme',
+                            style: AppTypography.body,
+                          ),
                         ],
                       ),
                       TextButton(
                         onPressed: _navigateToForgotPassword,
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                        ),
                         child: Text(
                           '¿Olvidaste tu contraseña?',
-                          style: TextStyle(
-                            color: Colors.blue[900],
+                          style: AppTypography.body.copyWith(
+                            color: AppColors.primary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -192,7 +211,7 @@ class _LoginPageState extends State<LoginPage> {
                     ],
                   ),
 
-                  const SizedBox(height: 32),
+                  SizedBox(height: AppSpacing.xl),
 
                   // Botón de login
                   BlocBuilder<AuthBloc, AuthState>(
@@ -205,24 +224,36 @@ class _LoginPageState extends State<LoginPage> {
                     },
                   ),
 
-                  const SizedBox(height: 24),
+                  SizedBox(height: AppSpacing.lg),
 
                   // Divider
-                  const Row(
+                  Row(
                     children: [
-                      Expanded(child: Divider()),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          'o',
-                          style: TextStyle(color: Colors.grey),
+                      Expanded(
+                        child: Divider(
+                          color: AppColors.divider,
+                          thickness: AppSpacing.borderThin,
                         ),
                       ),
-                      Expanded(child: Divider()),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                        child: Text(
+                          'o',
+                          style: AppTypography.body.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Divider(
+                          color: AppColors.divider,
+                          thickness: AppSpacing.borderThin,
+                        ),
+                      ),
                     ],
                   ),
 
-                  const SizedBox(height: 24),
+                  SizedBox(height: AppSpacing.lg),
 
                   // Botón de registro
                   AuthButton(
@@ -231,7 +262,7 @@ class _LoginPageState extends State<LoginPage> {
                     isOutlined: true,
                   ),
 
-                  const SizedBox(height: 32),
+                  SizedBox(height: AppSpacing.xl),
                 ],
               ),
             ),
