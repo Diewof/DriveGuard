@@ -89,7 +89,6 @@ Desarrollar un dispositivo portátil y autónomo que detecte distracciones o con
 ### Hardware
 
 - **ESP32-CAM** - Captura de video
-- **MPU-6050** - Acelerómetro + Giroscopio (simulado actualmente)
 - **Servidor HTTP** (Shelf) - Comunicación ESP32 ↔ App
 
 ### Arquitectura
