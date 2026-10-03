@@ -1,4 +1,4 @@
-# DriveGuard 🚗
+# DriveGuard 
 
 ## Dispositivo Inteligente de Prevención y Respuesta ante Crisis de Conducción
 
@@ -6,22 +6,22 @@ Un sistema híbrido que integra sensores, inteligencia artificial y una aplicaci
 
 ---
 
-## 📖 Descripción del Proyecto
+##  Descripción del Proyecto
 
 DriveGuard aborda la seguridad vial mediante tecnologías **IoT e Inteligencia Artificial**, enfocándose en reducir los riesgos derivados del uso del celular, la fatiga y la distracción al volante. Está enmarcado en la ingeniería de software y hardware embebido, con aplicaciones directas en movilidad inteligente y transporte seguro.
 
 ### Características Principales
 
-- 📊 **Monitoreo en Tiempo Real** - Sensores de aceleración, rotación y cámara
-- 🚨 **Alertas Multimodales** - Sonido, vibración y notificaciones visuales
-- 🎥 **Integración ESP32-CAM** - Captura y análisis de video
-- 📱 **App Multiplataforma** - Flutter para Android e iOS
-- ☁️ **Sincronización Cloud** - Firebase para historial y estadísticas
-- 🧠 **Detección Inteligente** - Algoritmos de IA para patrones peligrosos
+-  **Monitoreo en Tiempo Real** - Sensores de aceleración, rotación y cámara
+-  **Alertas Multimodales** - Sonido, vibración y notificaciones visuales
+-  **Integración ESP32-CAM** - Captura y análisis de video
+- **App Multiplataforma** - Flutter para Android e iOS
+-  **Sincronización Cloud** - Firebase para historial y estadísticas
+-  **Detección Inteligente** - Algoritmos de IA para patrones peligrosos
 
 ---
 
-## 🎯 Objetivos
+##  Objetivos
 
 ### Objetivo General
 
@@ -38,9 +38,9 @@ Desarrollar un dispositivo portátil y autónomo que detecte distracciones o con
 
 ---
 
-## 📌 Alcance
+## Alcance
 
-### Implementado ✅
+### Implementado 
 
 - [x] App móvil Flutter multiplataforma
 - [x] Sistema de autenticación (Firebase Auth)
@@ -53,7 +53,7 @@ Desarrollar un dispositivo portátil y autónomo que detecte distracciones o con
 - [x] Cálculo de risk score en tiempo real
 - [x] Panel de debug para ESP32-CAM
 
-### En Desarrollo 🚧
+### En Desarrollo 
 
 - [ ] Algoritmos de IA para detección de objetos (YOLO/MobileNet)
 - [ ] Procesamiento de frames de cámara con IA
@@ -69,7 +69,7 @@ Desarrollar un dispositivo portátil y autónomo que detecte distracciones o con
 
 ---
 
-## 🛠️ Tecnologías
+##  Tecnologías
 
 ### Frontend (App Móvil)
 
@@ -101,7 +101,7 @@ Desarrollar un dispositivo portátil y autónomo que detecte distracciones o con
 
 ---
 
-## 📚 Documentación
+##  Documentación
 
 Toda la documentación del proyecto está organizada en la carpeta [`documentacion/`](documentacion/):
 
@@ -109,14 +109,14 @@ Toda la documentación del proyecto está organizada en la carpeta [`documentaci
 
 | Documento | Descripción |
 |-----------|-------------|
-| [📖 Índice General](documentacion/01-general/INDICE.md) | Índice completo de toda la documentación |
-| [🏗️ Arquitectura](documentacion/02-arquitectura/ARQUITECTURA_Y_COMPONENTES.md) | Clean Architecture + BLoC detallado |
-| [🔄 Flujo de Datos](documentacion/02-arquitectura/FLUJO_DE_DATOS.md) | Diagramas completos de flujos |
-| [🔧 ESP32 Integration](documentacion/03-hardware/ESP32_INTEGRATION_GUIDE.md) | Guía de integración ESP32-CAM |
-| [📡 API HTTP](documentacion/04-api-integracion/API_SERVIDOR_HTTP.md) | Documentación del servidor embebido |
-| [📱 Instalación](documentacion/05-guias-usuario/INSTALACION.md) | Guía de instalación paso a paso |
-| [❓ FAQ](documentacion/05-guias-usuario/FAQ.md) | Preguntas frecuentes |
-| [💻 Setup Dev](documentacion/06-desarrollo/SETUP_DESARROLLO.md) | Configurar entorno de desarrollo |
+| [ Índice General](documentacion/01-general/INDICE.md) | Índice completo de toda la documentación |
+| [ Arquitectura](documentacion/02-arquitectura/ARQUITECTURA_Y_COMPONENTES.md) | Clean Architecture + BLoC detallado |
+| [ Flujo de Datos](documentacion/02-arquitectura/FLUJO_DE_DATOS.md) | Diagramas completos de flujos |
+| [ ESP32 Integration](documentacion/03-hardware/ESP32_INTEGRATION_GUIDE.md) | Guía de integración ESP32-CAM |
+| [ API HTTP](documentacion/04-api-integracion/API_SERVIDOR_HTTP.md) | Documentación del servidor embebido |
+| [ Instalación](documentacion/05-guias-usuario/INSTALACION.md) | Guía de instalación paso a paso |
+| [ FAQ](documentacion/05-guias-usuario/FAQ.md) | Preguntas frecuentes |
+| [ Setup Dev](documentacion/06-desarrollo/SETUP_DESARROLLO.md) | Configurar entorno de desarrollo |
 
 ### Categorías
 
@@ -131,7 +131,7 @@ Toda la documentación del proyecto está organizada en la carpeta [`documentaci
 
 ---
 
-## 🚀 Inicio Rápido
+##  Inicio Rápido
 
 ### Prerrequisitos
 
@@ -161,7 +161,7 @@ Para instrucciones detalladas, ver [Guía de Instalación](documentacion/05-guia
 
 ---
 
-## 📱 Uso de la Aplicación
+##  Uso de la Aplicación
 
 ### 1. Registro e Inicio de Sesión
 
@@ -195,7 +195,7 @@ Ver [Manual de Usuario](documentacion/05-guias-usuario/MANUAL_USUARIO.md) para m
 
 ---
 
-## 🏗️ Estructura del Proyecto
+##  Estructura del Proyecto
 
 ```
 DriveGuard/
@@ -219,7 +219,7 @@ DriveGuard/
 │       ├── blocs/         # Gestores de estado
 │       ├── pages/         # Páginas de la app
 │       └── widgets/       # Widgets reutilizables
-├── documentacion/         # 📚 Documentación completa
+├── documentacion/         #  Documentación completa
 ├── functions/             # Cloud Functions (Node.js)
 ├── test/                  # Tests
 └── assets/               # Recursos (audio, imágenes)
@@ -229,7 +229,7 @@ Ver [Arquitectura](documentacion/02-arquitectura/ARQUITECTURA_Y_COMPONENTES.md) 
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Todos los tests
@@ -247,7 +247,7 @@ flutter test --coverage
 
 ---
 
-## 🤝 Contribuir
+## Contribuir
 
 ¡Las contribuciones son bienvenidas!
 
@@ -261,19 +261,15 @@ Ver [Guía de Desarrollo](documentacion/06-desarrollo/SETUP_DESARROLLO.md) para 
 
 ---
 
-## 📄 Licencia
+## Licencia
 
 Este proyecto está bajo la Licencia MIT - ver el archivo LICENSE para más detalles.
 
 ---
 
-## 👥 Autores
 
-- **Tu Nombre** - Desarrollo inicial
 
----
-
-## 🙏 Agradecimientos
+## Agradecimientos
 
 - Flutter Team por el increíble framework
 - Firebase por los servicios cloud
@@ -281,25 +277,10 @@ Este proyecto está bajo la Licencia MIT - ver el archivo LICENSE para más deta
 
 ---
 
-## 📞 Contacto
 
-- **Email:** tu@email.com
-- **GitHub:** [@tu-usuario](https://github.com/tu-usuario)
-- **Issues:** [Reportar un problema](https://github.com/tu-usuario/driveguard/issues)
-
----
-
-## 🔗 Enlaces Útiles
-
-- [Documentación Completa](documentacion/README.md)
-- [FAQ](documentacion/05-guias-usuario/FAQ.md)
-- [Changelog](CHANGELOG.md) (próximamente)
-- [Roadmap](ROADMAP.md) (próximamente)
-
----
 
 <div align="center">
 
-**DriveGuard** - Conducción Segura con Tecnología Inteligente 🚗✨
+**DriveGuard** - Conducción Segura con Tecnología Inteligente 
 
 </div>
